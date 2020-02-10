@@ -20,7 +20,3 @@ var/
 .idea
 .venv
 .vscode
-.coverage
-htmlcov
-tests/private.*
-*.log
