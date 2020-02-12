@@ -1,8 +1,9 @@
 import argparse
 from .commands.team_members_report import cli as team_members_report_cli
+from .commands.entity_permissions_report import cli as entity_permissions_report_cli
 from .core import SynapseProxy
 
-ALL_ACTIONS = [team_members_report_cli]
+ALL_ACTIONS = [team_members_report_cli, entity_permissions_report_cli]
 
 
 def main(args=None):

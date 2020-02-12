@@ -14,10 +14,10 @@ class TeamMembersReport:
 
     CSV_HEADERS = ['team_id',
                    'team_name',
-                   'user_name',
+                   'user_id',
+                   'username',
                    'first_name',
                    'last_name',
-                   'emails',
                    'is_individual',
                    'is_admin']
 
@@ -45,6 +45,7 @@ class TeamMembersReport:
                 print('Report saved to: {0}'.format(self._csv_full_path))
 
     def _report_on_team(self, id_or_name):
+        print('=' * 80)
         print('Looking up team: "{0}"...'.format(id_or_name))
         try:
             team = SynapseProxy.client().getTeam(id_or_name)
@@ -59,35 +60,33 @@ class TeamMembersReport:
                 members = list(SynapseProxy.client().getTeamMembers(team))
                 print('Found team: {0} ({1}) with {2} members.'.format(team.name, team.id, len(members)))
                 for record in members:
-                    print('---')
+                    print('  ---')
                     member = record.get('member')
-                    profile = SynapseProxy.client().getUserProfile(member.get('ownerId'), refresh=True)
+                    user_id = member.get('ownerId')
+                    profile = SynapseProxy.client().getUserProfile(user_id, refresh=True)
 
-                    user_name = member.get('userName', None)
+                    username = member.get('userName', None)
                     first_name = member.get('firstName', None)
                     last_name = member.get('lastName', None)
-                    emails = ', '.join(profile.get('emails', []))
                     is_individual = member.get('isIndividual', False)
                     is_admin = record.get('isAdmin', False)
 
-                    if user_name:
-                        print('User Name: {0}'.format(user_name))
+                    if username:
+                        print('  Username: {0} ({1})'.format(username, user_id))
                     if first_name:
-                        print('First Name: {0}'.format(first_name))
+                        print('  First Name: {0}'.format(first_name))
                     if last_name:
-                        print('Last Name: {0}'.format(last_name))
-                    if emails:
-                        print('Emails: {0}'.format(emails))
-                    print('Is Individual: {0}'.format('Yes' if is_individual else 'No'))
-                    print('Is Admin: {0}'.format('Yes' if is_admin else 'No'))
+                        print('  Last Name: {0}'.format(last_name))
+                    print('  Is Individual: {0}'.format('Yes' if is_individual else 'No'))
+                    print('  Is Admin: {0}'.format('Yes' if is_admin else 'No'))
 
                     if self._csv_writer:
                         self._csv_writer.writerow({'team_id': team.id,
                                                    'team_name': team.name,
-                                                   'user_name': user_name,
+                                                   'user_id': user_id,
+                                                   'username': username,
                                                    'first_name': first_name,
                                                    'last_name': last_name,
-                                                   'emails': emails,
                                                    'is_individual': is_individual,
                                                    'is_admin': is_admin})
             except Exception as ex:

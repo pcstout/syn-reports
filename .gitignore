@@ -20,3 +20,4 @@ var/
 .idea
 .venv
 .vscode
+*.csv

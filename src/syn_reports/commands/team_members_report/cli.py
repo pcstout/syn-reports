@@ -4,7 +4,7 @@ from .team_members_report import TeamMembersReport
 def create(subparsers, parents):
     parser = subparsers.add_parser('team-members',
                                    parents=parents,
-                                   help='Show the members of a team.')
+                                   help='Report the members on a team.')
     parser.add_argument('teams',
                         nargs='+',
                         help='The IDs and/or names of the teams to report on.')
