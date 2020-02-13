@@ -1,5 +1,5 @@
 import os
-import logging
+import urllib
 import getpass
 import synapseclient as syn
 import synapseclient.utils as syn_utils
@@ -53,6 +53,44 @@ class SynapseProxy:
         if not cls._synapse_client:
             cls.login()
         return cls._synapse_client
+
+    @classmethod
+    def users_teams(cls, user_id):
+        """Gets all the teams a user is part of.
+
+        Args:
+            user_id:
+
+        Returns:
+
+        """
+        for item in cls.client()._GET_paginated('/user/{0}/team/'.format(user_id)):
+            yield item
+
+    @classmethod
+    def users_project_access(cls, user_id, **kwparams):
+        """ Gets the Projects a user has access to.
+
+        https://rest-docs.synapse.org/rest/GET/projects/user/principalId.html
+
+        Args:
+            user_id: The user ID to get activity for.
+            **kwparams: Params for the GET request.
+
+        Returns:
+            Generator
+        """
+        request = (kwparams or {})
+
+        response = {"nextPageToken": "first"}
+        while response.get('nextPageToken') is not None:
+            url_params = urllib.parse.urlencode(request)
+            uri = '/projects/user/{0}?{1}'.format(user_id, url_params)
+
+            response = cls.client().restGET(uri)
+            for child in response['results']:
+                yield child
+            request['nextPageToken'] = response.get('nextPageToken', None)
 
     class Permissions:
         ADMIN = [

@@ -4,6 +4,9 @@ from ...core import SynapseProxy, Utils
 
 
 class TeamMembersReport:
+    """
+    This report shows all the users on a team.
+    """
 
     def __init__(self, team_ids_or_names, out_path=None):
         self._team_ids_or_names = team_ids_or_names

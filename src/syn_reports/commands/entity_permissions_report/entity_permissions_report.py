@@ -5,6 +5,9 @@ from ...core import SynapseProxy, Utils
 
 
 class EntityPermissionsReport:
+    """
+    This report will show the permissions of each user and team on an entity.
+    """
 
     def __init__(self, entity_ids_or_names, out_path=None, recursive=False):
         self._entity_ids_or_names = entity_ids_or_names
