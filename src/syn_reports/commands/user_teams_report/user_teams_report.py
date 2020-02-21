@@ -10,6 +10,8 @@ class UserTeamsReport:
 
     def __init__(self, user_ids_or_usernames, out_path=None):
         self._user_ids_or_usernames = user_ids_or_usernames
+        if self._user_ids_or_usernames and not isinstance(self._user_ids_or_usernames, list):
+            self._user_ids_or_usernames = [self._user_ids_or_usernames]
         self._out_path = Utils.expand_path(out_path) if out_path else None
         self._csv_full_path = None
         self._csv_file = None
@@ -84,7 +86,7 @@ class UserTeamsReport:
                                 'is_admin': is_admin
                             })
                 else:
-                    print('Could not find user matching: {0}'.format(id_or_name))
+                    Utils.eprint('Could not find user matching: {0}'.format(id_or_name))
         finally:
             if self._csv_file:
                 self._csv_file.close()

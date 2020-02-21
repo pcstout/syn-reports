@@ -11,6 +11,8 @@ class EntityPermissionsReport:
 
     def __init__(self, entity_ids_or_names, out_path=None, recursive=False):
         self._entity_ids_or_names = entity_ids_or_names
+        if self._entity_ids_or_names and not isinstance(self._entity_ids_or_names, list):
+            self._entity_ids_or_names = [self._entity_ids_or_names]
         self._out_path = Utils.expand_path(out_path) if out_path else None
         self._recursive = recursive
         self._csv_full_path = None
@@ -71,7 +73,7 @@ class EntityPermissionsReport:
             # Entity does not exist.
             pass
         except Exception as ex:
-            print('Error loading entity: {0}'.format(ex))
+            Utils.eprint('Error loading entity: {0}'.format(ex))
 
         if entity:
             try:
@@ -117,9 +119,9 @@ class EntityPermissionsReport:
                                                    root_entity_acl_resource_access=root_entity_acl_resource_access)
 
             except Exception as ex:
-                print('Error loading entity data: {0}'.format(ex))
+                Utils.eprint('Error loading entity data: {0}'.format(ex))
         else:
-            print('Entity does not exist or you do not have access to the entity.')
+            Utils.eprint('Entity does not exist or you do not have access to the entity.')
 
     def _display_principal(self, entity, entity_type, permission_level, user_or_team,
                            from_team_id=None, from_team_name=None):

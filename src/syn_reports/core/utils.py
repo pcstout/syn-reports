@@ -1,9 +1,14 @@
 import os
+import sys
 import re
 import datetime
 
 
 class Utils:
+    @staticmethod
+    def eprint(*args, **kwargs):
+        """Print to stderr"""
+        print(*args, file=sys.stderr, **kwargs)
 
     @staticmethod
     def expand_path(local_path):

@@ -10,6 +10,8 @@ class TeamAccessReport:
 
     def __init__(self, team_ids_or_names, out_path=None):
         self._team_ids_or_names = team_ids_or_names
+        if self._team_ids_or_names and not isinstance(self._team_ids_or_names, list):
+            self._team_ids_or_names = [self._team_ids_or_names]
         self._out_path = Utils.expand_path(out_path) if out_path else None
         self._csv_full_path = None
         self._csv_file = None
@@ -57,7 +59,7 @@ class TeamAccessReport:
             # Team does not exist.
             pass
         except Exception as ex:
-            print('Error loading team: {0}'.format(ex))
+            Utils.eprint('Error loading team: {0}'.format(ex))
 
         if team:
             try:
@@ -67,6 +69,6 @@ class TeamAccessReport:
                 # TODO: How do we get the entities this team has access to?
                 raise NotImplementedError()
             except Exception as ex:
-                print('Error loading team data: {0}'.format(ex))
+                Utils.eprint('Error loading team data: {0}'.format(ex))
         else:
-            print('Team does not exist or you do not have access to the team.')
+            Utils.eprint('Team does not exist or you do not have access to the team.')

@@ -3,6 +3,11 @@ pip_install:
 	pipenv install --dev
 
 
+.PHONY: test
+test:
+	pytest -v --cov --cov-report=term --cov-report=html
+
+
 .PHONY: build
 build: clean
 	python setup.py sdist
@@ -14,6 +19,7 @@ build: clean
 clean:
 	rm -rf ./build/*
 	rm -rf ./dist/*
+	rm -rf ./htmlcov
 
 
 .PHONY: install_local
