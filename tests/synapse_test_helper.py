@@ -1,4 +1,5 @@
 import uuid
+import time
 from src.syn_reports.core import SynapseProxy
 from synapseclient import Project, Folder, File, Team, Wiki
 
@@ -139,6 +140,20 @@ class SynapseTestHelper:
         kwargs.pop('prefix', None)
 
         team = SynapseProxy.client().store(Team(**kwargs))
+
+        # Wait for the team to be available in Synapse.
+        tries = 0
+        while True:
+            tries += 1
+            try:
+                SynapseProxy.client().getTeam(team.name)
+                break
+            except ValueError:
+                if tries >= 10:
+                    raise Exception('Timed out waiting for Team to be available in Synapse.')
+                else:
+                    time.sleep(3)
+
         self.dispose_of(team)
         return team
 

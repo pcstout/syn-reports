@@ -3,6 +3,7 @@ import os
 import json
 import shutil
 import tempfile
+import time
 from .synapse_test_helper import SynapseTestHelper
 from src.syn_reports.core import SynapseProxy
 
@@ -49,6 +50,11 @@ def syn_folder(syn_test_helper, syn_project):
 @pytest.fixture(scope='session')
 def syn_file(syn_test_helper, mk_tempfile, syn_project):
     return syn_test_helper.create_file(parent=syn_project, path=mk_tempfile())
+
+
+@pytest.fixture(scope='session')
+def syn_team(syn_test_helper, syn_client):
+    return syn_test_helper.create_team()
 
 
 @pytest.fixture(scope='session')

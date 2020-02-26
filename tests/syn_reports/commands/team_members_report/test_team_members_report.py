@@ -1,25 +1,6 @@
 import pytest
 import os
-import time
 from src.syn_reports.commands.team_members_report import TeamMembersReport
-
-
-@pytest.fixture(scope='session')
-def syn_team(syn_test_helper, syn_client):
-    team = syn_test_helper.create_team()
-    # Wait for the team to be available in Synapse.
-    tries = 0
-    while True:
-        tries += 1
-        try:
-            syn_client.getTeam(team.name)
-            break
-        except ValueError:
-            if tries >= 10:
-                break
-            else:
-                time.sleep(3)
-    return team
 
 
 def assert_success_from_print(capsys, *teams):
