@@ -105,23 +105,22 @@ class UserProjectAccessReport:
                   or an empty array
         """
         # TODO: make this method return the highest permission the user has.
-        result = []
         principal_id = SynapseProxy.client()._getUserbyPrincipalIdOrName(principal_id)
         acl = SynapseProxy.client()._getACL(entity)
 
+        # Look for the principal's individual permission on the entity.
         for resource in acl['resourceAccess']:
             if 'principalId' in resource and resource['principalId'] == int(principal_id):
-                result = resource['accessType']
-                break
-        if not result:
-            teams = self._get_users_teams(principal_id)
-            team_ids = [int(t['id']) for t in teams]
-            for resource in acl['resourceAccess']:
-                if resource['principalId'] in team_ids:
-                    result = resource['accessType']
-                    break
+                return resource['accessType']
 
-        return result
+        # Look for the principal's permission via a team on the entity.
+        teams = self._get_users_teams(principal_id)
+        team_ids = [int(t['id']) for t in teams]
+        for resource in acl['resourceAccess']:
+            if resource['principalId'] in team_ids:
+                return resource['accessType']
+
+        return []
 
     def _get_users_teams(self, user_id):
         """Get all the teams a user is part of.

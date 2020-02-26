@@ -1,14 +1,14 @@
 import pytest
 import os
 from src.syn_reports.commands.entity_permissions_report import EntityPermissionsReport
-from src.syn_reports.core import Utils
+from src.syn_reports.core import Utils, SynapseProxy
 
 
 def assert_success_from_print(capsys, *entities):
     captured = capsys.readouterr()
     assert captured.err == ''
     for entity in entities:
-        log_msg = '{0}: {1} ({2}) found.'.format(Utils.entity_type_display_name(entity.concreteType),
+        log_msg = '{0}: {1} ({2}) found.'.format(SynapseProxy.entity_type_display_name(entity),
                                                  entity.name,
                                                  entity.id)
         assert log_msg in captured.out

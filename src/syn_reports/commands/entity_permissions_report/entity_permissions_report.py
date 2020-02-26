@@ -57,18 +57,18 @@ class EntityPermissionsReport:
                 print('')
                 print('Report saved to: {0}'.format(self._csv_full_path))
 
-    def _report_on_entity(self, id_or_name, root_entity_acl_resource_access=None):
+    def _report_on_entity(self, id_or_name, root_benefactor_id=None):
         print('=' * 80)
         print('Looking up entity: "{0}"...'.format(id_or_name))
         entity = None
         try:
-            if Utils.is_synapse_id(id_or_name):
+            if SynapseProxy.is_synapse_id(id_or_name):
                 syn_id_to_load = id_or_name
             else:
                 syn_id_to_load = SynapseProxy.client().findEntityId(id_or_name)
 
             if syn_id_to_load:
-                entity = SynapseProxy.client().get(syn_id_to_load, downloadFile=False)
+                entity = SynapseProxy.client().restGET('/entity/{0}/type'.format(syn_id_to_load))
         except syn.exceptions.SynapseHTTPError:
             # Entity does not exist.
             pass
@@ -77,19 +77,21 @@ class EntityPermissionsReport:
 
         if entity:
             try:
-                entity_type = Utils.entity_type_display_name(entity.get('concreteType'))
-                print('{0}: {1} ({2}) found.'.format(entity_type, entity.name, entity.id))
-
-                entity_acl = SynapseProxy.client()._getACL(entity)
-                # Get the resource access items and sort them so they can be compared.
-                resource_accesses = sorted(entity_acl.get('resourceAccess', []), key=lambda r: r.get('principalId'))
-                for resource in resource_accesses:
-                    resource.get('accessType').sort()
+                entity_type = SynapseProxy.entity_type_display_name(entity)
+                print('{0}: {1} ({2}) found.'.format(entity_type, entity['name'], entity['id']))
+                benefactor_id = entity['benefactorId']
 
                 # Only report on permissions that are different from the root entity's permissions.
-                if root_entity_acl_resource_access is not None and root_entity_acl_resource_access == resource_accesses:
+                if root_benefactor_id is not None and root_benefactor_id == benefactor_id:
                     print('  Permissions inherited from root entity.')
                 else:
+                    # NOTE: Do not use syn._getACL() as it will raise an error if the entity inherits its ACL.
+                    entity_acl = SynapseProxy.client().restGET('/entity/{0}/acl'.format(benefactor_id))
+                    # Get the resource access items and sort them so they can be compared.
+                    resource_accesses = sorted(entity_acl.get('resourceAccess', []), key=lambda r: r.get('principalId'))
+                    for resource in resource_accesses:
+                        resource.get('accessType').sort()
+
                     for resource in resource_accesses:
                         user_or_team = self._get_user_or_team(resource.get('principalId'))
                         permission_level = SynapseProxy.Permissions.name(resource.get('accessType'))
@@ -108,15 +110,14 @@ class EntityPermissionsReport:
                                                         from_team_id=user_or_team.id,
                                                         from_team_name=user_or_team.name)
 
-                if root_entity_acl_resource_access is None:
-                    root_entity_acl_resource_access = resource_accesses
-
                 if self._recursive:
-                    if isinstance(entity, syn.Project) or isinstance(entity, syn.Folder):
-                        for child in SynapseProxy.client().getChildren(entity,
+                    if root_benefactor_id is None:
+                        root_benefactor_id = benefactor_id
+
+                    if SynapseProxy.is_project(entity) or SynapseProxy.is_folder(entity):
+                        for child in SynapseProxy.client().getChildren(entity['id'],
                                                                        includeTypes=['folder', 'file', 'table']):
-                            self._report_on_entity(child.get('id'),
-                                                   root_entity_acl_resource_access=root_entity_acl_resource_access)
+                            self._report_on_entity(child['id'], root_benefactor_id=root_benefactor_id)
 
             except Exception as ex:
                 Utils.eprint('Error loading entity data: {0}'.format(ex))
@@ -159,8 +160,8 @@ class EntityPermissionsReport:
         if self._csv_writer:
             self._csv_writer.writerow({
                 'entity_type': entity_type,
-                'entity_id': entity.id,
-                'entity_name': entity.name,
+                'entity_id': entity['id'],
+                'entity_name': entity['name'],
                 'principal_type': principal_type,
                 'team_id': team_id or from_team_id,
                 'team_name': team_name or from_team_name,

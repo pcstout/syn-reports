@@ -1,6 +1,7 @@
 import os
 import urllib
 import getpass
+import re
 import synapseclient as syn
 import synapseclient.utils as syn_utils
 
@@ -53,6 +54,66 @@ class SynapseProxy:
         if not cls._synapse_client:
             cls.login()
         return cls._synapse_client
+
+    @classmethod
+    def is_synapse_id(cls, value):
+        """Gets if a string is a Synapse ID.
+
+        Args:
+            value: The string to check.
+
+        Returns:
+            True or False.
+        """
+        if isinstance(value, str):
+            return re.match('^syn[0-9]+$', value.strip(), re.IGNORECASE) is not None
+        else:
+            return False
+
+    PROJECT_TYPE_DISPLAY_NAME = 'Project'
+    FOLDER_TYPE_DISPLAY_NAME = 'Folder'
+    FILE_TYPE_DISPLAY_NAME = 'File'
+    LINK_TYPE_DISPLAY_NAME = 'Line'
+    TABLE_TYPE_DISPLAY_NAME = 'Table'
+
+    CONCRETE_TYPE_MAPPING = {
+        'org.sagebionetworks.repo.model.FileEntity': FILE_TYPE_DISPLAY_NAME,
+        'org.sagebionetworks.repo.model.Folder': FOLDER_TYPE_DISPLAY_NAME,
+        'org.sagebionetworks.repo.model.Link': LINK_TYPE_DISPLAY_NAME,
+        'org.sagebionetworks.repo.model.Project': PROJECT_TYPE_DISPLAY_NAME,
+        'org.sagebionetworks.repo.model.table.TableEntity': TABLE_TYPE_DISPLAY_NAME
+    }
+
+    @classmethod
+    def _extract_concrete_type(cls, obj):
+        result = obj
+        if not isinstance(obj, str):
+            for key in ['concreteType', 'type']:
+                if key in obj:
+                    result = obj[key]
+                    break
+
+        if str(result) not in cls.CONCRETE_TYPE_MAPPING.keys():
+            raise ValueError('Cannot extract type from: {0}'.format(obj))
+
+        return result
+
+    @classmethod
+    def entity_type_display_name(cls, concrete_type):
+        concrete_type = cls._extract_concrete_type(concrete_type)
+        return cls.CONCRETE_TYPE_MAPPING.get(concrete_type, 'Unknown Type: {0}'.format(concrete_type))
+
+    @classmethod
+    def is_project(cls, concrete_type):
+        return cls.entity_type_display_name(concrete_type) == cls.PROJECT_TYPE_DISPLAY_NAME
+
+    @classmethod
+    def is_folder(cls, concrete_type):
+        return cls.entity_type_display_name(concrete_type) == cls.FOLDER_TYPE_DISPLAY_NAME
+
+    @classmethod
+    def is_file(cls, concrete_type):
+        return cls.entity_type_display_name(concrete_type) == cls.FILE_TYPE_DISPLAY_NAME
 
     @classmethod
     def users_teams(cls, user_id):
