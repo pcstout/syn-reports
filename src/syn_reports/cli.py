@@ -7,10 +7,10 @@ from .commands.team_access_report import cli as team_access_report_cli  # TODO: 
 from .core import SynapseProxy
 
 ALL_ACTIONS = [
-    team_members_report_cli,
     entity_permissions_report_cli,
     user_project_access_report_cli,
-    user_teams_report_cli
+    user_teams_report_cli,
+    team_members_report_cli
 ]
 
 
