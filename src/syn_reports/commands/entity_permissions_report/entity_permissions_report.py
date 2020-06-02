@@ -141,6 +141,12 @@ class EntityPermissionsReport:
             team_name = user_or_team.name
             team_id = user_or_team.id
             print('{0}Team: {1} ({2})'.format(indent, team_name, team_id))
+        elif user_or_team is None:
+            principal_type = 'Unknown'
+            print('{0}Username/Team: Unknown - Script user ({1}) may not have access to this user/team data.)'.format(
+                indent, SynapseProxy._synapse_username))
+            if from_team_name:
+                print('{0}From Team: {1} ({2})'.format(indent, from_team_name, from_team_id))
         else:
             principal_type = 'User'
             user_id = user_or_team.ownerId
