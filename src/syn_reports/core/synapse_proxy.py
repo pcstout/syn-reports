@@ -3,7 +3,6 @@ import urllib
 import getpass
 import re
 import synapseclient as syn
-import synapseclient.utils as syn_utils
 
 
 class SynapseProxy:
