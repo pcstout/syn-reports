@@ -1,6 +1,7 @@
 import pytest
 import os
 from src.syn_reports.commands.user_teams_report import UserTeamsReport
+from src.syn_reports.core.synapse_proxy import SynapseProxy
 
 
 @pytest.fixture(scope='session')
@@ -59,3 +60,26 @@ def test_it_outputs_csv_to_file(capsys, syn_user, syn_team, mk_tempdir):
     assert report._csv_full_path == out_file
     assert_user_success_from_print(capsys, syn_user, syn_team)
     assert_success_from_csv(report._csv_full_path, syn_user, syn_team)
+
+
+def test_it_reports_on_has_member(capsys, syn_user, syn_team, mocker):
+    # Has the member
+    UserTeamsReport(syn_user.ownerId, required_member_ids_or_usernames=syn_user.userName).execute()
+    assert_user_success_from_print(capsys, syn_user, syn_team)
+
+    # Aborts if cannot find the 'required_member'
+    fake_username = 'notarealusername'
+    UserTeamsReport(syn_user.ownerId, required_member_ids_or_usernames=fake_username).execute()
+    captured = capsys.readouterr()
+    assert 'Could not find user matching: {0}. Aborting.'.format(fake_username) in captured.err
+    assert fake_username not in captured.out
+    assert 'Username: {0} ({1})'.format(syn_user.userName, syn_user.ownerId) not in captured.out
+    assert 'Team: {0} ({1})'.format(syn_team.name, syn_team.id) not in captured.out
+
+    # Does not have the member in the team
+    mocker.patch('src.syn_reports.commands.user_teams_report.user_teams_report.UserTeamsReport._get_team_members',
+                 return_value=[])
+    UserTeamsReport(syn_user.ownerId, required_member_ids_or_usernames=syn_user.userName).execute()
+    captured = capsys.readouterr()
+    assert 'Only including teams that have members: {0}'.format(syn_user.userName) in captured.out
+    assert 'Team: {0} ({1})'.format(syn_team.name, syn_team.id) not in captured.out
