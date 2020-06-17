@@ -1,5 +1,6 @@
 import argparse
 from .commands.team_members_report import cli as team_members_report_cli
+from .commands.benefactor_permissions_report import cli as benefactor_permissions_report_cli
 from .commands.entity_permissions_report import cli as entity_permissions_report_cli
 from .commands.user_project_access_report import cli as user_project_access_report_cli
 from .commands.user_teams_report import cli as user_teams_report_cli
@@ -7,6 +8,7 @@ from .commands.team_access_report import cli as team_access_report_cli  # TODO: 
 from .core import SynapseProxy
 
 ALL_ACTIONS = [
+    benefactor_permissions_report_cli,
     entity_permissions_report_cli,
     user_project_access_report_cli,
     user_teams_report_cli,

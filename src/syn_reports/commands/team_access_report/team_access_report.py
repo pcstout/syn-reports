@@ -34,7 +34,7 @@ class TeamAccessReport:
             else:
                 self._csv_full_path = os.path.join(self._out_path, 'team-access-{0}.csv'.format(Utils.timestamp_str()))
             Utils.ensure_dirs(os.path.dirname(self._csv_full_path))
-            self._csv_file = open(self._csv_full_path, mode='w')
+            self._csv_file = open(self._csv_full_path, mode='w', newline='')
             self._csv_writer = csv.DictWriter(self._csv_file,
                                               delimiter=',',
                                               quotechar='"',

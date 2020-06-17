@@ -26,7 +26,7 @@ SYNAPSE_PASSWORD=your-synapse-password
 
 ```text
 usage: syn-reports [-h]
-                   {entity-permissions,user-project-access,user-teams,team-members}
+                   {benefactor-permissions,entity-permissions,user-project-access,user-teams,team-members}
                    ...
 
 Synapse Reports
@@ -35,10 +35,14 @@ optional arguments:
   -h, --help            show this help message and exit
 
 Commands:
-  {entity-permissions,user-project-access,user-teams,team-members}
+  {benefactor-permissions,entity-permissions,user-project-access,user-teams,team-members}
+    benefactor-permissions
+                        Report the unique permissions on a Synapse entity and
+                        all its child entities.
     entity-permissions  Report the permissions of each user and team on a
                         Synapse entity.
-    user-project-access Report the projects a user has access to. NOTE: Only
+    user-project-access
+                        Report the projects a user has access to. NOTE: Only
                         public projects or projects the user executing this
                         script has access to will be reported.
     user-teams          Report the teams a user is a member of.
@@ -70,6 +74,28 @@ optional arguments:
                         different permissions from the starting entity.
 ```
 
+### benefactor-permissions
+
+```text
+sage: syn-reports benefactor-permissions [-h] [-u USERNAME] [-p PASSWORD]
+                                          [-o OUT_PATH]
+                                          entities [entities ...]
+
+positional arguments:
+  entities              The IDs and/or names of the entities to report on.
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -u USERNAME, --username USERNAME
+                        Synapse username.
+  -p PASSWORD, --password PASSWORD
+                        Synapse password.
+  -o OUT_PATH, --out-path OUT_PATH
+                        Path to export the report to. Specify a path that ends
+                        in ".csv" to export to a specific file otherwise a
+                        timestamped filename will be created in the out-path.
+```
+
 ### user-project-access
 
 ```text
@@ -96,6 +122,7 @@ optional arguments:
 
 ```text
 usage: syn-reports user-teams [-h] [-u USERNAME] [-p PASSWORD] [-o OUT_PATH]
+                              [--has-member [HAS_MEMBER]]
                               users [users ...]
 
 positional arguments:
@@ -111,7 +138,9 @@ optional arguments:
                         Path to export the report to. Specify a path that ends
                         in ".csv" to export to a specific file otherwise a
                         timestamped filename will be created in the out path.
-
+  --has-member [HAS_MEMBER]
+                        Only report teams that also have this user in the
+                        team.
 ```
 
 ### team-members
