@@ -70,7 +70,7 @@ class EntityPermissionsReport:
 
             if syn_id_to_load:
                 entity = SynapseProxy.client().restGET('/entity/{0}/type'.format(syn_id_to_load))
-        except syn.exceptions.SynapseHTTPError:
+        except syn.core.exceptions.SynapseHTTPError:
             # Entity does not exist.
             pass
         except Exception as ex:
@@ -189,7 +189,7 @@ class EntityPermissionsReport:
         try:
             if cache_key not in self._lookup_cache:
                 self._lookup_cache[cache_key] = SynapseProxy.client().getUserProfile(id, refresh=True)
-        except syn.exceptions.SynapseHTTPError:
+        except syn.core.exceptions.SynapseHTTPError:
             self._lookup_cache[cache_key] = None
         return self._lookup_cache[cache_key]
 
@@ -198,7 +198,7 @@ class EntityPermissionsReport:
         try:
             if cache_key not in self._lookup_cache:
                 self._lookup_cache[cache_key] = SynapseProxy.client().getTeam(id)
-        except syn.exceptions.SynapseHTTPError:
+        except syn.core.exceptions.SynapseHTTPError:
             self._lookup_cache[cache_key] = None
         return self._lookup_cache[cache_key]
 
@@ -207,7 +207,7 @@ class EntityPermissionsReport:
         try:
             if cache_key not in self._lookup_cache:
                 self._lookup_cache[cache_key] = list(SynapseProxy.client().getTeamMembers(team))
-        except syn.exceptions.SynapseHTTPError:
+        except syn.core.exceptions.SynapseHTTPError:
             self._lookup_cache[cache_key] = None
         return self._lookup_cache[cache_key]
 

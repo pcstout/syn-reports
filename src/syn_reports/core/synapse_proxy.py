@@ -34,7 +34,7 @@ class SynapseProxy:
         print('Logging into Synapse as: {0}'.format(username))
         try:
             # Disable the synapseclient progress output.
-            syn.utils.printTransferProgress = lambda *a, **k: None
+            syn.core.utils.printTransferProgress = lambda *a, **k: None
 
             cls._synapse_client = syn.Synapse(skip_checks=True)
             cls._synapse_client.login(username, password, silent=True, rememberMe=False)

@@ -1,5 +1,9 @@
 # Change Log
 
+## Version 0.0.5 (2020-06-29)
+### Added
+- Upgraded synapseclient to version 2.1.0
+
 ## Version 0.0.4 (2020-06-17)
 ### Added
 - Added benefactor-permissions report.

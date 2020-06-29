@@ -135,6 +135,6 @@ class UserProjectAccessReport:
         try:
             if cache_key not in self._lookup_cache:
                 self._lookup_cache[cache_key] = list(SynapseProxy.users_teams(user_id))
-        except syn.exceptions.SynapseHTTPError:
+        except syn.core.exceptions.SynapseHTTPError:
             self._lookup_cache[cache_key] = []
         return self._lookup_cache[cache_key]

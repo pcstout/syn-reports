@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="syn-reports",
-    version="0.0.4",
+    version="0.0.5",
     author="Patrick Stout",
     author_email="pstout@prevagroup.com",
     license="Apache2",
@@ -27,6 +27,6 @@ setuptools.setup(
         ]
     },
     install_requires=[
-        "synapseclient>=1.9.4,<2.0.0"
+        "synapseclient>=2.1.0,<3.0.0"
     ]
 )

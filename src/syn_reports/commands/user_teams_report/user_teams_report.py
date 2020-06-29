@@ -134,7 +134,7 @@ class UserTeamsReport:
     def _get_team_members(self, team_id):
         try:
             return list(SynapseProxy.client()._GET_paginated('/teamMembers/{0}'.format(team_id)))
-        except syn.exceptions.SynapseHTTPError as ex:
+        except syn.core.exceptions.SynapseHTTPError as ex:
             if ex.response.status_code != 403:
                 Utils.eprint('Error getting team members: {0}'.format(ex))
             return []
