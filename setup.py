@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="syn-reports",
-    version="0.0.5",
+    version="0.0.6",
     author="Patrick Stout",
     author_email="pstout@prevagroup.com",
     license="Apache2",

@@ -1,5 +1,9 @@
 # Change Log
 
+## Version 0.0.6 (2020-07-14)
+### Added
+- Added `entity_parent_id` to benefactor-permissions CSV file.
+
 ## Version 0.0.5 (2020-06-29)
 ### Added
 - Upgraded synapseclient to version 2.1.0
