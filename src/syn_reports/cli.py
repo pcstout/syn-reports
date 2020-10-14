@@ -19,11 +19,11 @@ ALL_ACTIONS = [
 
 def main(args=None):
     shared_parser = argparse.ArgumentParser(add_help=False)
-    shared_parser.add_argument('--version', action='version', version='%(prog)s {0}'.format(__version__))
     shared_parser.add_argument('-u', '--username', help='Synapse username.', default=None)
     shared_parser.add_argument('-p', '--password', help='Synapse password.', default=None)
 
     main_parser = argparse.ArgumentParser(description='Synapse Reports')
+    main_parser.add_argument('--version', action='version', version='%(prog)s {0}'.format(__version__))
     subparsers = main_parser.add_subparsers(title='Commands', dest='command')
     for action in ALL_ACTIONS:
         action.create(subparsers, [shared_parser])

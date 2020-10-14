@@ -1,5 +1,9 @@
 # Change Log
 
+## Version 0.0.8 (2020-10-14)
+### Added
+- Fix `--version` arg.
+
 ## Version 0.0.7 (2020-10-12)
 ### Added
 - Updated benefactor-permissions report to work with projects and folders that have more than 20,000 child items.
