@@ -1,7 +1,7 @@
 import pytest
 import os
 from src.syn_reports.commands.benefactor_permissions_report import BenefactorPermissionsReport
-from src.syn_reports.core import Utils, SynapseProxy
+from src.syn_reports.core import SynapseProxy
 
 
 def assert_success_from_print(capsys, *entities):

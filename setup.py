@@ -1,11 +1,12 @@
 import setuptools
+from src.syn_reports._version import __version__
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
     name="syn-reports",
-    version="0.0.6",
+    version=__version__,
     author="Patrick Stout",
     author_email="pstout@prevagroup.com",
     license="Apache2",

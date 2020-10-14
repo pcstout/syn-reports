@@ -6,6 +6,7 @@ from .commands.user_project_access_report import cli as user_project_access_repo
 from .commands.user_teams_report import cli as user_teams_report_cli
 from .commands.team_access_report import cli as team_access_report_cli  # TODO: Uncomment when fully implemented.
 from .core import SynapseProxy
+from ._version import __version__
 
 ALL_ACTIONS = [
     benefactor_permissions_report_cli,
@@ -18,6 +19,7 @@ ALL_ACTIONS = [
 
 def main(args=None):
     shared_parser = argparse.ArgumentParser(add_help=False)
+    shared_parser.add_argument('--version', action='version', version='%(prog)s {0}'.format(__version__))
     shared_parser.add_argument('-u', '--username', help='Synapse username.', default=None)
     shared_parser.add_argument('-p', '--password', help='Synapse password.', default=None)
 

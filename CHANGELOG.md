@@ -1,5 +1,10 @@
 # Change Log
 
+## Version 0.0.7 (2020-10-12)
+### Added
+- Updated benefactor-permissions report to work with projects and folders that have more than 20,000 child items.
+- Added `--version` arg.
+
 ## Version 0.0.6 (2020-07-14)
 ### Added
 - Added `entity_parent_id` to benefactor-permissions CSV file.

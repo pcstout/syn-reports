@@ -1,6 +1,7 @@
 import uuid
 import synapseclient as syn
 from ...core import Utils, SynapseProxy
+from synapseclient.core.exceptions import SynapseHTTPError
 
 
 class BenefactorView(list):
@@ -10,34 +11,94 @@ class BenefactorView(list):
         self.scope = None
         self.view_project = None
 
-    def set_scope(self, scope):
-        """Clear the view data and load a new scope.
+    def set_scope(self, scope, clear=True):
+        """Load a new scope object and optionally clear the benefactor list data.
 
         Args:
             scope: The Project, Folder, or File to scope the view to.
+            clear: Whether to clear the loaded benefactor list data or not.
         """
-        self.clear()
+        if clear:
+            self.clear()
         self.scope = scope
         self.load()
 
     def load(self):
         try:
-            if isinstance(self.scope, syn.File):
-                benefactor_id = SynapseProxy.client()._getBenefactor(self.scope).get('id')
-                self._add_item(benefactor_id)
-            elif type(self.scope) in [syn.Project, syn.Folder]:
-                if self.view_project is None:
-                    self._create_project()
-                if SynapseProxy.is_project(self.scope):
-                    # A separate view is required for Projects.
-                    self._query_view(self._create_view([syn.EntityViewType.PROJECT]))
+            if type(self.scope) in [syn.Project, syn.Folder, syn.File]:
+                self._add_single_scope_item(self.scope)
 
-                self._query_view(self._create_view([syn.EntityViewType.FOLDER, syn.EntityViewType.FILE]))
+                if type(self.scope) in [syn.Project, syn.Folder]:
+                    if self.view_project is None:
+                        self._create_project()
+
+                    # Create a view and load the uniq benefactors for each folder and file in the scoped container.
+                    self._create_folder_and_file_view()
             else:
                 raise Exception('Scope entity must be a Project, Folder, or File.')
         except Exception as ex:
             Utils.eprint(ex)
             raise
+
+    def _create_folder_and_file_view(self):
+        """Creates a view for all the folders and files within the current scope object.
+        If a view cannot be created this method will fallback to adding each folder/file individually.
+        """
+        try:
+            self._query_view(self._create_view([syn.EntityViewType.FOLDER, syn.EntityViewType.FILE]))
+        except SynapseHTTPError as ex:
+            if 'scope exceeds the maximum number' in str(ex):
+                print('Cannot create Folder/File view for: {0}. Falling back to individual loading and views.'.format(
+                    self.scope.name))
+                self._fallback_add_folders_and_files()
+
+    def _fallback_add_folders_and_files(self):
+        """This will add the benefactor data into self for each folder and file in the current scope,
+        then it will try to view load each folder. If a folder cannot be view loaded it will recurse through
+        this method until a folder that can be view loaded is found or each folder/file has been added individually.
+
+        Synapse has a limit of 20,000 objects in a container. If one of the projects or folders exceeds this number
+        then we need to fallback to loading the benefactor data this way.
+        """
+        child_items = list(SynapseProxy.client().getChildren(self.scope, includeTypes=["folder", "file"]))
+        folder_ids = []
+
+        # Manually add each folder and file in the scope that couldn't be loaded via a view.
+        child_added_count = 0
+        for child_item in child_items:
+            child_type_name = SynapseProxy.entity_type_display_name(child_item)
+            child_item_id = child_item['id']
+            child_added_count += 1
+            print(' - Adding {0}: {1} [{2}/{3}]'.format(child_type_name,
+                                                        child_item_id,
+                                                        child_added_count,
+                                                        len(child_items)))
+            self._add_single_scope_item(child_item_id)
+            if SynapseProxy.is_folder(child_item):
+                folder_ids.append(child_item_id)
+
+        # Try to load the folders with views.
+        folder_added_count = 0
+        for folder_id in folder_ids:
+            folder_added_count += 1
+            syn_folder = SynapseProxy.client().get(folder_id)
+            print(' - Creating View for Folder: {0} ({1}) [{2}/{3}]'.format(syn_folder.id,
+                                                                            syn_folder.name,
+                                                                            folder_added_count,
+                                                                            len(folder_ids)))
+            self.set_scope(syn_folder, clear=False)
+
+    def _add_single_scope_item(self, entity_or_id):
+        """Gets the benefactor data for a single entity and adds it to self.
+
+        Args:
+            entity_or_id: The entity (or entity ID) to add benefactor data for.
+
+        Returns:
+            None
+        """
+        benefactor_id = SynapseProxy.client()._getBenefactor(entity_or_id).get('id')
+        self._add_item(benefactor_id)
 
     def _query_view(self, view):
         query = 'SELECT DISTINCT {0} FROM {1}'.format(self.COL_BENEFACTORID, view.id)
