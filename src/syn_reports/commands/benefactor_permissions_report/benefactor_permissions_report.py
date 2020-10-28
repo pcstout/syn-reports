@@ -27,6 +27,7 @@ class BenefactorPermissionsReport:
                    'entity_id',
                    'entity_name',
                    'entity_parent_id',
+                   'entity_project_id',
                    'principal_type',
                    'team_id',
                    'team_name',
@@ -34,7 +35,7 @@ class BenefactorPermissionsReport:
                    'username',
                    'first_name',
                    'last_name',
-                   'emails',
+                   'user_data',
                    'permission_level']
 
     def execute(self):
@@ -102,8 +103,11 @@ class BenefactorPermissionsReport:
         return entity
 
     def _report_on_view(self):
-        for benefactor_id in self._view:
+        for item in self._view:
             try:
+                benefactor_id = item['benefactor_id']
+                entity_project_id = item['project_id']
+
                 entity = SynapseProxy.client().get(benefactor_id)
                 entity_type = SynapseProxy.entity_type_display_name(entity)
                 print('{0}: {1} ({2})'.format(entity_type, entity['name'], entity['id']))
@@ -120,7 +124,7 @@ class BenefactorPermissionsReport:
                     user_or_team = self._get_user_or_team(resource.get('principalId'))
                     permission_level = SynapseProxy.Permissions.name(resource.get('accessType'))
 
-                    self._display_principal(entity, entity_type, permission_level, user_or_team)
+                    self._display_principal(entity, entity_type, entity_project_id, permission_level, user_or_team)
 
                     if isinstance(user_or_team, syn.Team):
                         members = self._get_team_members(user_or_team)
@@ -130,6 +134,7 @@ class BenefactorPermissionsReport:
                             user = self._get_user(user_id)
                             self._display_principal(entity,
                                                     entity_type,
+                                                    entity_project_id,
                                                     permission_level,
                                                     user,
                                                     from_team_id=user_or_team.id,
@@ -137,7 +142,7 @@ class BenefactorPermissionsReport:
             except Exception as ex:
                 self._show_error('Error loading ACL data: {0}'.format(ex))
 
-    def _display_principal(self, entity, entity_type, permission_level, user_or_team,
+    def _display_principal(self, entity, entity_type, entity_project_id, permission_level, user_or_team,
                            from_team_id=None, from_team_name=None):
         indent = '  ' if from_team_id is None else '    '
         print('{0}---'.format(indent))
@@ -148,7 +153,7 @@ class BenefactorPermissionsReport:
         username = None
         first_name = None
         last_name = None
-        emails = None
+        user_data = None
 
         if isinstance(user_or_team, syn.Team):
             principal_type = 'Team'
@@ -167,7 +172,14 @@ class BenefactorPermissionsReport:
             username = user_or_team.userName
             first_name = user_or_team.get('firstName', None)
             last_name = user_or_team.get('lastName', None)
-            emails = ','.join(user_or_team.get('emails', []))
+
+            user_field_data = []
+            for field in ['company', 'location', 'position']:
+                if user_or_team.get(field, None):
+                    user_field_data.append(user_or_team.get(field))
+
+            user_data = ' - '.join(user_field_data)
+
             print('{0}Username: {1} ({2})'.format(indent, username, user_id))
             if from_team_name:
                 print('{0}From Team: {1} ({2})'.format(indent, from_team_name, from_team_id))
@@ -175,8 +187,8 @@ class BenefactorPermissionsReport:
                 print('{0}First Name: {1}'.format(indent, first_name))
             if last_name:
                 print('{0}Last Name: {1}'.format(indent, last_name))
-            if emails:
-                print('{0}Emails: {1}'.format(indent, emails))
+            if user_data:
+                print('{0}User Data: {1}'.format(indent, user_data))
 
         print('{0}Permission: {1}'.format(indent, permission_level))
 
@@ -186,6 +198,7 @@ class BenefactorPermissionsReport:
                 'entity_id': entity['id'],
                 'entity_name': entity['name'],
                 'entity_parent_id': entity['parentId'],
+                'entity_project_id': entity_project_id,
                 'principal_type': principal_type,
                 'team_id': team_id or from_team_id,
                 'team_name': team_name or from_team_name,
@@ -193,7 +206,7 @@ class BenefactorPermissionsReport:
                 'username': username,
                 'first_name': first_name,
                 'last_name': last_name,
-                'emails': emails,
+                'user_data': user_data,
                 'permission_level': permission_level
             })
 

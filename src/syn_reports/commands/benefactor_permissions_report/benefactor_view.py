@@ -6,6 +6,7 @@ from synapseclient.core.exceptions import SynapseHTTPError
 
 class BenefactorView(list):
     COL_BENEFACTORID = 'benefactorId'
+    COL_PROJECTID = 'projectId'
 
     def __init__(self):
         self.scope = None
@@ -97,21 +98,31 @@ class BenefactorView(list):
         Returns:
             None
         """
-        benefactor_id = SynapseProxy.client()._getBenefactor(entity_or_id).get('id')
-        self._add_item(benefactor_id)
+        entity_id = entity_or_id['id'] if isinstance(entity_or_id, syn.Entity) else entity_or_id
+
+        paths = SynapseProxy.client().restGET('/entity/{0}/path'.format(entity_id)).get('path')
+        project_id = next((p for p in paths if p['type'] == 'org.sagebionetworks.repo.model.Project'))['id']
+
+        benefactor_id = SynapseProxy.client()._getBenefactor(entity_id).get('id')
+        self._add_item(benefactor_id, project_id)
 
     def _query_view(self, view):
-        query = 'SELECT DISTINCT {0} FROM {1}'.format(self.COL_BENEFACTORID, view.id)
+        query = 'SELECT DISTINCT {0},{1} FROM {2}'.format(self.COL_BENEFACTORID, self.COL_PROJECTID, view.id)
         query_result = SynapseProxy.client().tableQuery(query=query, resultsAs='csv')
 
         col_benefactorid = self._get_table_column_index(query_result.headers, self.COL_BENEFACTORID)
+        col_projectid = self._get_table_column_index(query_result.headers, self.COL_PROJECTID)
 
         for row in query_result:
-            self._add_item(row[col_benefactorid])
+            self._add_item(row[col_benefactorid], row[col_projectid])
 
-    def _add_item(self, benefactorid):
-        if benefactorid not in self:
-            self.append(benefactorid)
+    def _add_item(self, benefactor_id, project_id):
+        item = {
+            'benefactor_id': benefactor_id,
+            'project_id': project_id
+        }
+        if item not in self:
+            self.append(item)
 
     def _get_table_column_index(self, headers, column_name):
         """Gets the column index for a Synapse Table Column.
@@ -127,7 +138,8 @@ class BenefactorView(list):
     def _create_view(self, entity_types):
         name = '_TEMP_{0}_VIEW_'.format(str(uuid.uuid4()))
         cols = [
-            syn.Column(name=self.COL_BENEFACTORID, columnType='ENTITYID')
+            syn.Column(name=self.COL_BENEFACTORID, columnType='ENTITYID'),
+            syn.Column(name=self.COL_PROJECTID, columnType='ENTITYID')
         ]
         schema = syn.EntityViewSchema(name=name,
                                       columns=cols,

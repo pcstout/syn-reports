@@ -67,29 +67,34 @@ def test_it_loads_all_the_benefactors_for_a_project(test_data):
     bv.set_scope(project)
 
     expected_entities = test_data['all_entities']
+    assert len(bv) == len(expected_entities)
     for entity in expected_entities:
-        assert entity.id in bv
+        assert {'benefactor_id': entity.id, 'project_id': project.id} in bv
 
 
 def test_it_loads_all_the_benefactors_for_a_folder(test_data):
+    project = test_data['project']
     folder1 = test_data['folder1']
     bv = BenefactorView()
     bv.set_scope(folder1)
 
     expected_entities = [e for e in test_data['all_entities'] if
                          e not in [test_data['project'], test_data['file0']]]
+    assert len(bv) == len(expected_entities)
     for entity in expected_entities:
-        assert entity.id in bv
+        assert {'benefactor_id': entity.id, 'project_id': project.id} in bv
 
 
 def test_it_loads_all_the_benefactors_for_a_file(test_data):
+    project = test_data['project']
     file0 = test_data['file0']
     bv = BenefactorView()
     bv.set_scope(file0)
 
     expected_entities = [file0]
+    assert len(bv) == len(expected_entities)
     for entity in expected_entities:
-        assert entity.id in bv
+        assert {'benefactor_id': entity.id, 'project_id': project.id} in bv
 
 
 def test_it_falls_back_to_individual_loading(test_data, mocker):
@@ -110,5 +115,14 @@ def test_it_falls_back_to_individual_loading(test_data, mocker):
     bv.set_scope(project)
 
     expected_entities = test_data['all_entities']
+    assert len(bv) == len(expected_entities)
     for entity in expected_entities:
-        assert entity.id in bv
+        assert {'benefactor_id': entity.id, 'project_id': project.id} in bv
+
+
+def test_it_does_not_add_duplicate_items():
+    bv = BenefactorView()
+    bv._add_item('1', '2')
+    bv._add_item('1', '2')
+    bv._add_item('1', '2')
+    assert len(bv) == 1

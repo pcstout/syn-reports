@@ -1,5 +1,10 @@
 # Change Log
 
+## Version 0.0.9 (2020-10-28)
+### Added
+- Added `entity_project_id` and `user_data` fields to benefactor-permissions CSV file.
+- Removed `emails` field from benefactor-permissions CSV file.
+
 ## Version 0.0.8 (2020-10-14)
 ### Added
 - Fix `--version` arg.
