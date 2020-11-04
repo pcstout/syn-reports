@@ -23,7 +23,7 @@ class TeamMembersReport:
                    'username',
                    'first_name',
                    'last_name',
-                   'is_individual',
+                   'company',
                    'is_admin']
 
     def execute(self):
@@ -68,12 +68,13 @@ class TeamMembersReport:
                 for record in members:
                     print('  ---')
                     member = record.get('member')
-                    user_id = member.get('ownerId')
+                    user = SynapseProxy.WithCache.get_user(member.get('ownerId'))
 
-                    username = member.get('userName', None)
-                    first_name = member.get('firstName', None)
-                    last_name = member.get('lastName', None)
-                    is_individual = member.get('isIndividual', False)
+                    user_id = user.get('ownerId')
+                    username = user.get('userName', None)
+                    first_name = user.get('firstName', None)
+                    last_name = user.get('lastName', None)
+                    company = user.get('company', None)
                     is_admin = record.get('isAdmin', False)
 
                     if username:
@@ -82,7 +83,8 @@ class TeamMembersReport:
                         print('  First Name: {0}'.format(first_name))
                     if last_name:
                         print('  Last Name: {0}'.format(last_name))
-                    print('  Is Individual: {0}'.format('Yes' if is_individual else 'No'))
+                    if company:
+                        print('  Company: {0}'.format(company))
                     print('  Is Admin: {0}'.format('Yes' if is_admin else 'No'))
 
                     if self._csv_writer:
@@ -92,7 +94,7 @@ class TeamMembersReport:
                                                    'username': username,
                                                    'first_name': first_name,
                                                    'last_name': last_name,
-                                                   'is_individual': is_individual,
+                                                   'company': company,
                                                    'is_admin': is_admin})
             except Exception as ex:
                 Utils.eprint('Error loading team data: {0}'.format(ex))

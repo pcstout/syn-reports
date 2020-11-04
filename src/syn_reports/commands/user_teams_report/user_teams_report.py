@@ -1,6 +1,5 @@
 import os
 import csv
-import synapseclient as syn
 from ...core import SynapseProxy, Utils
 
 
@@ -52,7 +51,7 @@ class UserTeamsReport:
             required_members_usernames = []
             if self._required_member_ids_or_usernames:
                 for required_user_id_or_name in self._required_member_ids_or_usernames:
-                    required_user = self._find_user(required_user_id_or_name)
+                    required_user = SynapseProxy.WithCache.get_user(required_user_id_or_name)
                     if required_user is None:
                         Utils.eprint('Could not find user matching: {0}. Aborting.'.format(required_user_id_or_name))
                         return False
@@ -68,7 +67,7 @@ class UserTeamsReport:
                 print('=' * 80)
                 print('Looking up user: "{0}"...'.format(id_or_name))
 
-                user = self._find_user(id_or_name)
+                user = SynapseProxy.WithCache.get_user(id_or_name)
 
                 if user:
                     user_id = user.ownerId
@@ -90,7 +89,7 @@ class UserTeamsReport:
                         # Check if the team has at least on of the required members.
                         if required_members:
                             found_match = False
-                            members = self._get_team_members(team_id)
+                            members = SynapseProxy.WithCache.get_team_members(team_id)
                             for result in members:
                                 member = result.get('member')
                                 if member.get('userName') in required_members_usernames:
@@ -123,18 +122,3 @@ class UserTeamsReport:
                 self._csv_file.close()
             if self._csv_full_path:
                 print('Report saved to: {0}'.format(self._csv_full_path))
-
-    def _find_user(self, id_or_name):
-        try:
-            return SynapseProxy.client().getUserProfile(id_or_name, refresh=True)
-        except ValueError:
-            # User does not exist
-            return None
-
-    def _get_team_members(self, team_id):
-        try:
-            return list(SynapseProxy.client()._GET_paginated('/teamMembers/{0}'.format(team_id)))
-        except syn.core.exceptions.SynapseHTTPError as ex:
-            if ex.response.status_code != 403:
-                Utils.eprint('Error getting team members: {0}'.format(ex))
-            return []
