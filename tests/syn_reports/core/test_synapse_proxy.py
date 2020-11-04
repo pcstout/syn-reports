@@ -73,3 +73,60 @@ def test_is_file():
     assert SynapseProxy.is_file('org.sagebionetworks.repo.model.FileEntity') is True
     assert SynapseProxy.is_file(syn.File(parentId='syn0')) is True
     assert SynapseProxy.is_file({'concreteType': 'org.sagebionetworks.repo.model.FileEntity'}) is True
+
+
+def test_with_cache_get_user(syn_test_helper):
+    user_id = SynapseProxy.client().getUserProfile().get('ownerId')
+    user = SynapseProxy.WithCache.get_user(user_id)
+    assert user['ownerId'] == user_id
+
+    # Returns None if the user does not exist
+    assert SynapseProxy.WithCache.get_user('-9999999') is None
+    assert SynapseProxy.WithCache.get_user('000') is None
+    assert SynapseProxy.WithCache.get_user(syn_test_helper.uniq_name(prefix='notarealname')) is None
+
+
+def test_with_cache_get_team(syn_test_helper):
+    team = syn_test_helper.create_team()
+    team_id = team.get('id')
+    team_name = team.get('name')
+
+    team = SynapseProxy.WithCache.get_team(team_id)
+    assert team['id'] == team_id
+
+    team = SynapseProxy.WithCache.get_team(team_name)
+    assert team['id'] == team_id
+
+    # Returns None if the team does not exist
+    assert SynapseProxy.WithCache.get_team('-9999999') is None
+    assert SynapseProxy.WithCache.get_team('000') is None
+    assert SynapseProxy.WithCache.get_team(syn_test_helper.uniq_name(prefix='notarealname')) is None
+
+
+def test_with_cache_get_user_or_team(syn_test_helper):
+    user_id = SynapseProxy.client().getUserProfile().get('ownerId')
+    team_id = syn_test_helper.create_team().get('id')
+
+    user = SynapseProxy.WithCache.get_user_or_team(user_id)
+    assert isinstance(user, syn.UserProfile)
+    assert user['ownerId'] == user_id
+
+    team = SynapseProxy.WithCache.get_user_or_team(team_id)
+    assert isinstance(team, syn.Team)
+    assert team['id'] == team_id
+
+    # Returns None if the user and team do not exist
+    assert SynapseProxy.WithCache.get_user_or_team('-9999999') is None
+    assert SynapseProxy.WithCache.get_user_or_team('000') is None
+    assert SynapseProxy.WithCache.get_user_or_team(syn_test_helper.uniq_name(prefix='notarealname')) is None
+    assert SynapseProxy.WithCache.get_user_or_team(syn_test_helper.uniq_name(prefix='notarealname')) is None
+
+
+def test_with_cache_get_team_members(syn_test_helper):
+    team = syn_test_helper.create_team()
+    members = SynapseProxy.WithCache.get_team_members(team.id)
+    assert len(members) == 1
+
+    # Returns [] if the team does not exist
+    assert SynapseProxy.WithCache.get_team_members('-9999999') == []
+    assert SynapseProxy.WithCache.get_team_members('000') == []

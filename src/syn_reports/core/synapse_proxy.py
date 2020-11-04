@@ -1,3 +1,4 @@
+import functools
 import os
 import urllib
 import getpass
@@ -151,6 +152,40 @@ class SynapseProxy:
             for child in response['results']:
                 yield child
             request['nextPageToken'] = response.get('nextPageToken', None)
+
+    class WithCache:
+        LRU_MAXSIZE = (os.cpu_count() or 1) * 16
+
+        @classmethod
+        @functools.lru_cache(maxsize=LRU_MAXSIZE, typed=True)
+        def get_user(cls, username_or_id):
+            try:
+                return SynapseProxy.client().getUserProfile(username_or_id, refresh=True)
+            except (ValueError, syn.core.exceptions.SynapseHTTPError):
+                return None
+
+        @classmethod
+        @functools.lru_cache(maxsize=LRU_MAXSIZE, typed=True)
+        def get_team(cls, team_id_or_name):
+            try:
+                return SynapseProxy.client().getTeam(team_id_or_name)
+            except (ValueError, syn.core.exceptions.SynapseHTTPError):
+                return None
+
+        @classmethod
+        @functools.lru_cache(maxsize=LRU_MAXSIZE, typed=True)
+        def get_user_or_team(cls, user_id_or_team_id):
+            # NOTE: User and Team IDs do NOT overlap in Synapse.
+            return SynapseProxy.WithCache.get_user(user_id_or_team_id) or \
+                   SynapseProxy.WithCache.get_team(user_id_or_team_id)
+
+        @classmethod
+        @functools.lru_cache(maxsize=LRU_MAXSIZE, typed=True)
+        def get_team_members(cls, team_id):
+            try:
+                return list(SynapseProxy.client().getTeamMembers(team_id))
+            except (ValueError, syn.core.exceptions.SynapseHTTPError):
+                return []
 
     class Permissions:
         ADMIN = [

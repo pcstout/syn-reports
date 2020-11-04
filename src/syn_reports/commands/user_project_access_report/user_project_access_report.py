@@ -1,3 +1,4 @@
+import functools
 import os
 import csv
 import synapseclient as syn
@@ -19,7 +20,6 @@ class UserProjectAccessReport:
         self._csv_full_path = None
         self._csv_file = None
         self._csv_writer = None
-        self._lookup_cache = {}
 
     CSV_HEADERS = ['user_id',
                    'username',
@@ -122,6 +122,7 @@ class UserProjectAccessReport:
 
         return []
 
+    @functools.lru_cache(maxsize=SynapseProxy.WithCache.LRU_MAXSIZE, typed=True)
     def _get_users_teams(self, user_id):
         """Get all the teams a user is part of.
 
@@ -131,10 +132,7 @@ class UserProjectAccessReport:
         Returns:
             List
         """
-        cache_key = 'USERS_TEAMS_{0}'.format(user_id)
         try:
-            if cache_key not in self._lookup_cache:
-                self._lookup_cache[cache_key] = list(SynapseProxy.users_teams(user_id))
+            return list(SynapseProxy.users_teams(user_id))
         except syn.core.exceptions.SynapseHTTPError:
-            self._lookup_cache[cache_key] = []
-        return self._lookup_cache[cache_key]
+            return []

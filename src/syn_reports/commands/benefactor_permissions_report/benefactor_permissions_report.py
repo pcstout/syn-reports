@@ -20,7 +20,6 @@ class BenefactorPermissionsReport:
         self._csv_file = None
         self._csv_writer = None
         self._view = None
-        self._lookup_cache = {}
         self.errors = []
 
     CSV_HEADERS = ['entity_type',
@@ -121,17 +120,17 @@ class BenefactorPermissionsReport:
                     resource.get('accessType').sort()
 
                 for resource in resource_accesses:
-                    user_or_team = self._get_user_or_team(resource.get('principalId'))
+                    user_or_team = SynapseProxy.WithCache.get_user_or_team(resource.get('principalId'))
                     permission_level = SynapseProxy.Permissions.name(resource.get('accessType'))
 
                     self._display_principal(entity, entity_type, entity_project_id, permission_level, user_or_team)
 
                     if isinstance(user_or_team, syn.Team):
-                        members = self._get_team_members(user_or_team)
+                        members = SynapseProxy.WithCache.get_team_members(user_or_team.id)
                         for record in members:
                             member = record.get('member')
                             user_id = member.get('ownerId')
-                            user = self._get_user(user_id)
+                            user = SynapseProxy.WithCache.get_user(user_id)
                             self._display_principal(entity,
                                                     entity_type,
                                                     entity_project_id,
@@ -209,34 +208,3 @@ class BenefactorPermissionsReport:
                 'user_data': user_data,
                 'permission_level': permission_level
             })
-
-    def _get_user(self, id):
-        cache_key = 'USER_{0}'.format(id)
-        try:
-            if cache_key not in self._lookup_cache:
-                self._lookup_cache[cache_key] = SynapseProxy.client().getUserProfile(id, refresh=True)
-        except syn.core.exceptions.SynapseHTTPError:
-            self._lookup_cache[cache_key] = None
-        return self._lookup_cache[cache_key]
-
-    def _get_team(self, id):
-        cache_key = 'TEAM_{0}'.format(id)
-        try:
-            if cache_key not in self._lookup_cache:
-                self._lookup_cache[cache_key] = SynapseProxy.client().getTeam(id)
-        except syn.core.exceptions.SynapseHTTPError:
-            self._lookup_cache[cache_key] = None
-        return self._lookup_cache[cache_key]
-
-    def _get_team_members(self, team):
-        cache_key = 'TEAM_MEMBERS_{0}'.format(team.id)
-        try:
-            if cache_key not in self._lookup_cache:
-                self._lookup_cache[cache_key] = list(SynapseProxy.client().getTeamMembers(team))
-        except syn.core.exceptions.SynapseHTTPError:
-            self._lookup_cache[cache_key] = None
-        return self._lookup_cache[cache_key]
-
-    def _get_user_or_team(self, id):
-        # NOTE: User and Team IDs do NOT overlap in Synapse.
-        return self._get_user(id) or self._get_team(id)

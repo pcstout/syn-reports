@@ -62,13 +62,13 @@ def test_it_outputs_csv_to_file(capsys, syn_user, syn_team, mk_tempdir):
     assert_success_from_csv(report._csv_full_path, syn_user, syn_team)
 
 
-def test_it_reports_on_has_member(capsys, syn_user, syn_team, mocker):
+def test_it_reports_on_has_member(capsys, syn_user, syn_team, mocker, syn_test_helper):
     # Has the member
     UserTeamsReport(syn_user.ownerId, required_member_ids_or_usernames=syn_user.userName).execute()
     assert_user_success_from_print(capsys, syn_user, syn_team)
 
     # Aborts if cannot find the 'required_member'
-    fake_username = 'notarealusername'
+    fake_username = syn_test_helper.uniq_name(prefix='notarealusername')
     UserTeamsReport(syn_user.ownerId, required_member_ids_or_usernames=fake_username).execute()
     captured = capsys.readouterr()
     assert 'Could not find user matching: {0}. Aborting.'.format(fake_username) in captured.err
@@ -77,7 +77,7 @@ def test_it_reports_on_has_member(capsys, syn_user, syn_team, mocker):
     assert 'Team: {0} ({1})'.format(syn_team.name, syn_team.id) not in captured.out
 
     # Does not have the member in the team
-    mocker.patch('src.syn_reports.commands.user_teams_report.user_teams_report.UserTeamsReport._get_team_members',
+    mocker.patch('src.syn_reports.core.synapse_proxy.SynapseProxy.WithCache.get_team_members',
                  return_value=[])
     UserTeamsReport(syn_user.ownerId, required_member_ids_or_usernames=syn_user.userName).execute()
     captured = capsys.readouterr()

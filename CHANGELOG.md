@@ -1,5 +1,10 @@
 # Change Log
 
+## Version 0.0.10 (2020-11-04)
+### Added
+- Refactored caching.
+- Added `company` field to `team-members` CSV file..
+
 ## Version 0.0.9 (2020-10-28)
 ### Added
 - Added `entity_project_id` and `user_data` fields to benefactor-permissions CSV file.
