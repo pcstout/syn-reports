@@ -191,12 +191,18 @@ class BenefactorPermissionsReport:
 
         print('{0}Permission: {1}'.format(indent, permission_level))
 
+        entity_parent_id = entity['parentId']
+        # Do not include the parent ID for projects since no one has access to that container, and
+        # it's not needed or useful.
+        if SynapseProxy.is_project(entity):
+            entity_parent_id = None
+
         if self._csv_writer:
             self._csv_writer.writerow({
                 'entity_type': entity_type,
                 'entity_id': entity['id'],
                 'entity_name': entity['name'],
-                'entity_parent_id': entity['parentId'],
+                'entity_parent_id': entity_parent_id,
                 'entity_project_id': entity_project_id,
                 'principal_type': principal_type,
                 'team_id': team_id or from_team_id,

@@ -44,6 +44,11 @@ def test_it_reports_recursively_by_project(capsys, syn_project, syn_folder, syn_
     assert_success_from_print(capsys, syn_project, syn_folder, syn_file)
 
 
+def test_it_reports_all_permissions_by_project(capsys, syn_project, syn_folder, syn_file):
+    EntityPermissionsReport(syn_project.id, recursive=True, report_on_all=True).execute()
+    assert_success_from_print(capsys, syn_project, syn_folder, syn_file)
+
+
 def test_it_outputs_csv_to_dir(capsys, syn_project, syn_folder, syn_file, mk_tempdir):
     out_dir = mk_tempdir()
     report = EntityPermissionsReport(syn_project.id, recursive=True, out_path=out_dir)

@@ -1,5 +1,6 @@
 import pytest
 import os
+import csv
 from src.syn_reports.commands.benefactor_permissions_report import BenefactorPermissionsReport
 from src.syn_reports.core import SynapseProxy
 
@@ -69,6 +70,34 @@ def test_it_outputs_csv_to_file(capsys, syn_project, syn_folder, syn_file, mk_te
     assert_success_from_print(capsys, syn_project)
     # Folder and File have the same permissions as the project so they are not in the CSV.
     assert_success_from_csv(report._csv_full_path, syn_project)
+
+
+def test_it_outputs_csv_to_file_without_entity_parent_id_for_projects(capsys, syn_test_helper,
+                                                                      syn_project, syn_folder, syn_file,
+                                                                      mk_tempdir):
+    folder_team = syn_test_helper.create_team()
+    file_team = syn_test_helper.create_team()
+    SynapseProxy.client().setPermissions(syn_folder, folder_team.id,
+                                         accessType=SynapseProxy.Permissions.CAN_EDIT_AND_DELETE,
+                                         warn_if_inherits=False)
+    SynapseProxy.client().setPermissions(syn_file, file_team.id,
+                                         accessType=SynapseProxy.Permissions.CAN_EDIT_AND_DELETE,
+                                         warn_if_inherits=False)
+
+    out_file = os.path.join(mk_tempdir(), 'outfile.csv')
+    report = BenefactorPermissionsReport(syn_project.id, out_path=out_file)
+    report.execute()
+    assert report._csv_full_path == out_file
+    assert_success_from_print(capsys, syn_project)
+
+    assert_success_from_csv(report._csv_full_path, syn_project, syn_folder, syn_file)
+    with open(out_file, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            if row['entity_type'] == 'Project':
+                assert row['entity_parent_id'] == ''
+            else:
+                assert row['entity_parent_id'] == syn_project.id
 
 
 def test_it_reports_on_folders_by_id(capsys, syn_folder):

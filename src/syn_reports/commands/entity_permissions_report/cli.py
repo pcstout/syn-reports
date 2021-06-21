@@ -14,6 +14,10 @@ def create(subparsers, parents):
                         default=False,
                         action='store_true',
                         help='Recursively report permissions on child entities. Will report on each sub-folder/file/table that has different permissions from the starting entity.')
+    parser.add_argument('-a', '--all',
+                        default=False,
+                        action='store_true',
+                        help='Report permissions on every entity regardless of the parent permission.')
     parser.set_defaults(_execute=execute)
 
 
@@ -21,5 +25,6 @@ def execute(args):
     EntityPermissionsReport(
         args.entities,
         out_path=args.out_path,
-        recursive=args.recursive
+        recursive=args.recursive,
+        report_on_all=args.all
     ).execute()
