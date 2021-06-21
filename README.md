@@ -5,7 +5,9 @@ Utilities for reporting on [Synapse](https://www.synapse.org/).
 ## Dependencies
 
 - [Python3.7](https://www.python.org/)
-- A [Synapse](https://www.synapse.org/) account with a username/password. Authentication through a 3rd party (.e.g., Google) will not work, you must have a Synapse user/pass for the [API to authenticate](http://docs.synapse.org/python/#connecting-to-synapse).
+- A [Synapse](https://www.synapse.org/) account with a username/password. Authentication through a 3rd party (.e.g.,
+  Google) will not work, you must have a Synapse user/pass for
+  the [API to authenticate](http://docs.synapse.org/python/#connecting-to-synapse).
 
 ## Install
 
@@ -53,7 +55,7 @@ Commands:
 
 ```text
 usage: syn-reports entity-permissions [-h] [-u USERNAME] [-p PASSWORD]
-                                      [-o OUT_PATH] [-r]
+                                      [-o OUT_PATH] [-r] [-a]
                                       entities [entities ...]
 
 positional arguments:
@@ -72,6 +74,8 @@ optional arguments:
   -r, --recursive       Recursively report permissions on child entities. Will
                         report on each sub-folder/file/table that has
                         different permissions from the starting entity.
+  -a, --all             Report permissions on every entity regardless of the
+                        parent permission.
 ```
 
 ### benefactor-permissions
@@ -173,4 +177,5 @@ make pip_install
 make build
 make install_local
 ```
+
 See [Makefile](Makefile) for all commands.
