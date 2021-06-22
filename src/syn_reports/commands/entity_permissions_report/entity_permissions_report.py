@@ -9,12 +9,13 @@ class EntityPermissionsReport:
     This report will show the permissions of each user and team on an entity.
     """
 
-    def __init__(self, entity_ids_or_names, out_path=None, recursive=False):
+    def __init__(self, entity_ids_or_names, out_path=None, recursive=False, report_on_all=False):
         self._entity_ids_or_names = entity_ids_or_names
         if self._entity_ids_or_names and not isinstance(self._entity_ids_or_names, list):
             self._entity_ids_or_names = [self._entity_ids_or_names]
         self._out_path = Utils.expand_path(out_path) if out_path else None
         self._recursive = recursive
+        self._report_on_all = report_on_all
         self._csv_full_path = None
         self._csv_file = None
         self._csv_writer = None
@@ -82,7 +83,7 @@ class EntityPermissionsReport:
                 benefactor_id = entity['benefactorId']
 
                 # Only report on permissions that are different from the root entity's permissions.
-                if root_benefactor_id is not None and root_benefactor_id == benefactor_id:
+                if not self._report_on_all and (root_benefactor_id is not None and root_benefactor_id == benefactor_id):
                     print('  Permissions inherited from root entity.')
                 else:
                     # NOTE: Do not use syn._getACL() as it will raise an error if the entity inherits its ACL.
