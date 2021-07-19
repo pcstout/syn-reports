@@ -18,4 +18,8 @@ def create(subparsers, parents):
 
 
 def execute(args):
-    UserTeamsReport(args.users, required_member_ids_or_usernames=args.has_member, out_path=args.out_path).execute()
+    return UserTeamsReport(
+        args.users,
+        required_member_ids_or_usernames=args.has_member,
+        out_path=args.out_path
+    ).execute()

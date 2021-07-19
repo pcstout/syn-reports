@@ -21,6 +21,7 @@ class UserTeamsReport:
         self._csv_full_path = None
         self._csv_file = None
         self._csv_writer = None
+        self.errors = []
 
     CSV_HEADERS = ['user_id',
                    'username',
@@ -53,7 +54,8 @@ class UserTeamsReport:
                 for required_user_id_or_name in self._required_member_ids_or_usernames:
                     required_user = SynapseProxy.WithCache.get_user(required_user_id_or_name)
                     if required_user is None:
-                        Utils.eprint('Could not find user matching: {0}. Aborting.'.format(required_user_id_or_name))
+                        self._show_error(
+                            'Could not find user matching: {0}. Aborting.'.format(required_user_id_or_name))
                         return False
                     else:
                         required_members.append(required_user)
@@ -116,9 +118,14 @@ class UserTeamsReport:
                                 'is_admin': is_admin
                             })
                 else:
-                    Utils.eprint('Could not find user matching: {0}'.format(id_or_name))
+                    self._show_error('Could not find user matching: {0}'.format(id_or_name))
         finally:
             if self._csv_file:
                 self._csv_file.close()
             if self._csv_full_path:
                 print('Report saved to: {0}'.format(self._csv_full_path))
+        return self
+
+    def _show_error(self, msg):
+        self.errors.append(msg)
+        Utils.eprint(msg)

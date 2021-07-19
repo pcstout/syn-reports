@@ -1,4 +1,6 @@
 import argparse
+import sys
+
 from .commands.team_members_report import cli as team_members_report_cli
 from .commands.benefactor_permissions_report import cli as benefactor_permissions_report_cli
 from .commands.entity_permissions_report import cli as entity_permissions_report_cli
@@ -31,7 +33,20 @@ def main(args=None):
     cmd_args = main_parser.parse_args(args)
 
     if '_execute' in cmd_args:
-        SynapseProxy.configure(username=cmd_args.username, password=cmd_args.password)
-        cmd_args._execute(cmd_args)
+        try:
+            SynapseProxy.configure(username=cmd_args.username, password=cmd_args.password)
+            cmd = cmd_args._execute(cmd_args)
+            if cmd.errors:
+                print('Finished with errors.')
+                for error in cmd.errors:
+                    print(error)
+                sys.exit(1)
+            else:
+                print('Finished successfully.')
+                sys.exit(0)
+        except Exception as ex:
+            print(ex)
+            sys.exit(1)
     else:
         main_parser.print_help()
+        sys.exit(1)

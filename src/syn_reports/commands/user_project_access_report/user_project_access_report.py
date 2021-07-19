@@ -20,6 +20,7 @@ class UserProjectAccessReport:
         self._csv_full_path = None
         self._csv_file = None
         self._csv_writer = None
+        self.errors = []
 
     CSV_HEADERS = ['user_id',
                    'username',
@@ -86,13 +87,14 @@ class UserProjectAccessReport:
                                 'permission_level': permission_level
                             })
                 else:
-                    Utils.eprint('Could not find user matching: {0}'.format(id_or_name))
+                    self._show_error('Could not find user matching: {0}'.format(id_or_name))
         finally:
             if self._csv_file:
                 self._csv_file.close()
             if self._csv_full_path:
                 print('')
                 print('Report saved to: {0}'.format(self._csv_full_path))
+        return self
 
     def _get_permissions(self, entity, principal_id):
         """Get the permissions that a user or group has on an Entity.
@@ -136,3 +138,7 @@ class UserProjectAccessReport:
             return list(SynapseProxy.users_teams(user_id))
         except syn.core.exceptions.SynapseHTTPError:
             return []
+
+    def _show_error(self, msg):
+        self.errors.append(msg)
+        Utils.eprint(msg)

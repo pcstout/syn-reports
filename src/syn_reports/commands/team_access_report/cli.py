@@ -14,4 +14,7 @@ def create(subparsers, parents):
 
 
 def execute(args):
-    TeamAccessReport(args.teams, out_path=args.out_path).execute()
+    return TeamAccessReport(
+        args.teams,
+        out_path=args.out_path
+    ).execute()

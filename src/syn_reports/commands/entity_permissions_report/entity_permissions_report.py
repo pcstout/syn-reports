@@ -19,6 +19,7 @@ class EntityPermissionsReport:
         self._csv_full_path = None
         self._csv_file = None
         self._csv_writer = None
+        self.errors = []
 
     CSV_HEADERS = ['entity_type',
                    'entity_id',
@@ -57,6 +58,7 @@ class EntityPermissionsReport:
             if self._csv_full_path:
                 print('')
                 print('Report saved to: {0}'.format(self._csv_full_path))
+        return self
 
     def _report_on_entity(self, id_or_name, root_benefactor_id=None):
         print('=' * 80)
@@ -74,7 +76,7 @@ class EntityPermissionsReport:
             # Entity does not exist.
             pass
         except Exception as ex:
-            Utils.eprint('Error loading entity: {0}'.format(ex))
+            self._show_error('Error loading entity: {0}'.format(ex))
 
         if entity:
             try:
@@ -121,9 +123,9 @@ class EntityPermissionsReport:
                             self._report_on_entity(child['id'], root_benefactor_id=root_benefactor_id)
 
             except Exception as ex:
-                Utils.eprint('Error loading entity data: {0}'.format(ex))
+                self._show_error('Error loading entity data: {0}'.format(ex))
         else:
-            Utils.eprint('Entity does not exist or you do not have access to the entity.')
+            self._show_error('Entity does not exist or you do not have access to the entity.')
 
     def _display_principal(self, entity, entity_type, permission_level, user_or_team,
                            from_team_id=None, from_team_name=None):
@@ -183,3 +185,7 @@ class EntityPermissionsReport:
                 'emails': emails,
                 'permission_level': permission_level
             })
+
+    def _show_error(self, msg):
+        self.errors.append(msg)
+        Utils.eprint(msg)

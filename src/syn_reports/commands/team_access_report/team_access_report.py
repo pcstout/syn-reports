@@ -16,6 +16,7 @@ class TeamAccessReport:
         self._csv_full_path = None
         self._csv_file = None
         self._csv_writer = None
+        self.errors = []
 
     CSV_HEADERS = ['team_id',
                    'team_name',
@@ -49,6 +50,7 @@ class TeamAccessReport:
                 self._csv_file.close()
             if self._csv_full_path:
                 print('Report saved to: {0}'.format(self._csv_full_path))
+        return self
 
     def _report_on_team(self, id_or_name):
         print('=' * 80)
@@ -59,7 +61,7 @@ class TeamAccessReport:
             # Team does not exist.
             pass
         except Exception as ex:
-            Utils.eprint('Error loading team: {0}'.format(ex))
+            self._show_error('Error loading team: {0}'.format(ex))
 
         if team:
             try:
@@ -69,6 +71,10 @@ class TeamAccessReport:
                 # TODO: How do we get the entities this team has access to?
                 raise NotImplementedError()
             except Exception as ex:
-                Utils.eprint('Error loading team data: {0}'.format(ex))
+                self._show_error('Error loading team data: {0}'.format(ex))
         else:
-            Utils.eprint('Team does not exist or you do not have access to the team.')
+            self._show_error('Team does not exist or you do not have access to the team.')
+
+    def _show_error(self, msg):
+        self.errors.append(msg)
+        Utils.eprint(msg)
