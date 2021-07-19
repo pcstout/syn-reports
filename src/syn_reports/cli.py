@@ -37,12 +37,12 @@ def main(args=None):
             SynapseProxy.configure(username=cmd_args.username, password=cmd_args.password)
             cmd = cmd_args._execute(cmd_args)
             if cmd.errors:
-                print('!' * 80)
                 print('Finished with errors.')
                 for error in cmd.errors:
                     print(error)
                 sys.exit(1)
             else:
+                print('Finished successfully.')
                 sys.exit(0)
         except Exception as ex:
             print(ex)

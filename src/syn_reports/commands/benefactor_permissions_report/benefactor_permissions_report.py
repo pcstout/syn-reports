@@ -68,7 +68,8 @@ class BenefactorPermissionsReport:
                         self._view.set_scope(entity)
                         self._report_on_view()
                     else:
-                        self._show_error('Entity does not exist or you do not have access to the entity.')
+                        self._show_error(
+                            'Entity does not exist or you do not have access to the entity: {0}'.format(id_or_name))
                 except Exception as ex:
                     self._show_error('ERROR: {0}'.format(ex))
         finally:
