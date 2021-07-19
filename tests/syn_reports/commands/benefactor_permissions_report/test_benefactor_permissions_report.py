@@ -37,7 +37,7 @@ def test_it_reports_on_projects_by_name(capsys, syn_project):
 def test_it_does_not_blowup_if_entity_not_found(capsys):
     BenefactorPermissionsReport('syn000').execute()
     captured = capsys.readouterr()
-    assert 'Entity does not exist or you do not have access to the entity.' in captured.err
+    assert 'Entity does not exist or you do not have access to the entity:' in captured.err
 
 
 def test_it_reports_on_uniq_permissions(capsys, syn_project, syn_folder, syn_file, syn_test_helper):
@@ -108,7 +108,7 @@ def test_it_reports_on_folders_by_id(capsys, syn_folder):
 def test_it_cannot_report_folders_by_name(capsys, syn_folder):
     BenefactorPermissionsReport(syn_folder.name).execute()
     captured = capsys.readouterr()
-    assert 'Entity does not exist or you do not have access to the entity.' in captured.err
+    assert 'Entity does not exist or you do not have access to the entity:' in captured.err
 
 
 def test_it_reports_on_files_by_id(capsys, syn_file):
@@ -119,11 +119,11 @@ def test_it_reports_on_files_by_id(capsys, syn_file):
 def test_it_cannot_report_files_by_name(capsys, syn_file):
     BenefactorPermissionsReport(syn_file.name).execute()
     captured = capsys.readouterr()
-    assert 'Entity does not exist or you do not have access to the entity.' in captured.err
+    assert 'Entity does not exist or you do not have access to the entity:' in captured.err
 
 
 def test_it_does_not_raise_error_on_projects_not_found(capsys, syn_test_helper):
     for id_or_name in ['syn000', syn_test_helper.uniq_name(prefix='DOES NOT EXIST')]:
         BenefactorPermissionsReport(id_or_name).execute()
         captured = capsys.readouterr()
-        assert 'Entity does not exist or you do not have access to the entity.' in captured.err
+        assert 'Entity does not exist or you do not have access to the entity:' in captured.err
