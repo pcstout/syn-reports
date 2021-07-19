@@ -6,6 +6,7 @@ import tempfile
 import time
 from .synapse_test_helper import SynapseTestHelper
 from src.syn_reports.core import SynapseProxy
+from src.syn_reports.cli import main as cli_main
 
 # Load Environment variables.
 module_dir = os.path.dirname(os.path.abspath(__file__))
@@ -87,3 +88,14 @@ def mk_tempfile(mk_tempdir, syn_test_helper):
 
     if os.path.isdir(temp_dir):
         shutil.rmtree(temp_dir)
+
+
+@pytest.fixture(scope='session')
+def expect_cli_exit_code():
+    def _fn(command, expected_code, *args):
+        with pytest.raises(SystemExit) as pytest_wrapped_e:
+            cli_main([command, *args])
+        assert pytest_wrapped_e.type == SystemExit
+        assert pytest_wrapped_e.value.code == expected_code
+
+    yield _fn

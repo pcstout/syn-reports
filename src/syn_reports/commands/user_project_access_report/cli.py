@@ -14,7 +14,7 @@ def create(subparsers, parents):
 
 
 def execute(args):
-    UserProjectAccessReport(
+    return UserProjectAccessReport(
         args.users,
         out_path=args.out_path
     ).execute()

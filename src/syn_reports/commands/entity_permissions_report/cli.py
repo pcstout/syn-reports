@@ -22,7 +22,7 @@ def create(subparsers, parents):
 
 
 def execute(args):
-    EntityPermissionsReport(
+    return EntityPermissionsReport(
         args.entities,
         out_path=args.out_path,
         recursive=args.recursive,

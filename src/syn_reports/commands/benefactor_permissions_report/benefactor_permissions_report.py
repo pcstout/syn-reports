@@ -79,6 +79,7 @@ class BenefactorPermissionsReport:
                 print('Report saved to: {0}'.format(self._csv_full_path))
             if self._view:
                 self._view.delete()
+        return self
 
     def _show_error(self, msg):
         self.errors.append(msg)

@@ -14,13 +14,7 @@ def create(subparsers, parents):
 
 
 def execute(args):
-    bpr = BenefactorPermissionsReport(
+    return BenefactorPermissionsReport(
         args.entities,
         out_path=args.out_path
-    )
-    bpr.execute()
-    if bpr.errors:
-        print('!' * 80)
-        print('Finished with errors.')
-        for error in bpr.errors:
-            print(error)
+    ).execute()
