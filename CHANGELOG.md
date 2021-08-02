@@ -1,5 +1,11 @@
 # Change Log
 
+## Version 0.0.13 (2021-08-02)
+
+### Bug Fixes
+
+- Fixed CSV writing on Windows.
+
 ## Version 0.0.12 (2021-07-19)
 
 ### Added
