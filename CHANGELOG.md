@@ -1,5 +1,11 @@
 # Change Log
 
+## Version 0.0.14 (2021-08-03)
+
+### Added
+
+- Added CSV column for "is_team_manager" to benefactor-permissions and entity-permissions reports.
+
 ## Version 0.0.13 (2021-08-02)
 
 ### Bug Fixes

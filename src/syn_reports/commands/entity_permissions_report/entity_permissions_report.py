@@ -27,6 +27,7 @@ class EntityPermissionsReport:
                    'principal_type',
                    'team_id',
                    'team_name',
+                   'is_team_manager',
                    'user_id',
                    'username',
                    'first_name',
@@ -101,9 +102,10 @@ class EntityPermissionsReport:
                         self._display_principal(entity, entity_type, permission_level, user_or_team)
 
                         if isinstance(user_or_team, syn.Team):
-                            members = SynapseProxy.WithCache.get_team_members(user_or_team.id)
-                            for record in members:
-                                member = record.get('member')
+                            team_members = SynapseProxy.WithCache.get_team_members(user_or_team.id)
+                            for team_member in team_members:
+                                is_team_manager = team_member.get('isAdmin')
+                                member = team_member.get('member')
                                 user_id = member.get('ownerId')
                                 user = SynapseProxy.WithCache.get_user(user_id)
                                 self._display_principal(entity,
@@ -111,7 +113,8 @@ class EntityPermissionsReport:
                                                         permission_level,
                                                         user,
                                                         from_team_id=user_or_team.id,
-                                                        from_team_name=user_or_team.name)
+                                                        from_team_name=user_or_team.name,
+                                                        from_team_user_is_manager=is_team_manager)
 
                 if self._recursive:
                     if root_benefactor_id is None:
@@ -128,12 +131,13 @@ class EntityPermissionsReport:
             self._show_error('Entity does not exist or you do not have access to the entity.')
 
     def _display_principal(self, entity, entity_type, permission_level, user_or_team,
-                           from_team_id=None, from_team_name=None):
+                           from_team_id=None, from_team_name=None, from_team_user_is_manager=None):
         indent = '  ' if from_team_id is None else '    '
         print('{0}---'.format(indent))
         principal_type = None
         team_name = None
         team_id = None
+        is_team_manager = from_team_user_is_manager
         user_id = None
         username = None
         first_name = None
@@ -167,6 +171,8 @@ class EntityPermissionsReport:
                 print('{0}Last Name: {1}'.format(indent, last_name))
             if emails:
                 print('{0}Emails: {1}'.format(indent, emails))
+            if is_team_manager is not None:
+                print('{0}Team Manager: {1}'.format(indent, is_team_manager))
 
         print('{0}Permission: {1}'.format(indent, permission_level))
 
@@ -178,6 +184,7 @@ class EntityPermissionsReport:
                 'principal_type': principal_type,
                 'team_id': team_id or from_team_id,
                 'team_name': team_name or from_team_name,
+                'is_team_manager': is_team_manager,
                 'user_id': user_id,
                 'username': username,
                 'first_name': first_name,
