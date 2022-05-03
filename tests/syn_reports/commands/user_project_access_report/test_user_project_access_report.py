@@ -45,15 +45,15 @@ def test_it_reports_by_username(capsys, syn_user, syn_project):
     assert_project_success_from_print(capsys, syn_project)
 
 
-def test_it_does_not_blowup_if_user_not_found(capsys, syn_test_helper):
-    username = syn_test_helper.uniq_name(prefix='Invalid-User')
+def test_it_does_not_blowup_if_user_not_found(capsys, synapse_test_helper):
+    username = synapse_test_helper.uniq_name(prefix='Invalid-User')
     UserProjectAccessReport(username).execute()
     captured = capsys.readouterr()
     assert 'Could not find user matching: {0}'.format(username) in captured.err
 
 
-def test_it_outputs_csv_to_dir(capsys, syn_user, syn_project, mk_tempdir):
-    out_dir = mk_tempdir()
+def test_it_outputs_csv_to_dir(capsys, synapse_test_helper, syn_user, syn_project):
+    out_dir = synapse_test_helper.create_temp_dir()
     report = UserProjectAccessReport(syn_user.userName, out_path=out_dir)
     report.execute()
     assert_user_success_from_print(capsys, syn_user)
@@ -61,8 +61,8 @@ def test_it_outputs_csv_to_dir(capsys, syn_user, syn_project, mk_tempdir):
     assert_success_from_csv(report._csv_full_path, syn_user, syn_project)
 
 
-def test_it_outputs_csv_to_file(capsys, syn_user, syn_project, mk_tempdir):
-    out_file = os.path.join(mk_tempdir(), 'outfile.csv')
+def test_it_outputs_csv_to_file(capsys, synapse_test_helper, syn_user, syn_project):
+    out_file = os.path.join(synapse_test_helper.create_temp_dir(), 'outfile.csv')
     report = UserProjectAccessReport(syn_user.userName, out_path=out_file)
     report.execute()
     assert report._csv_full_path == out_file

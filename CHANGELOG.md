@@ -1,5 +1,11 @@
 # Change Log
 
+## Version 0.0.15 (2022-05-02)
+
+### Added
+
+- Additional args for benefactor-permissions report.
+
 ## Version 0.0.14 (2021-08-03)
 
 ### Added

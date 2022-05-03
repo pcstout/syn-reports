@@ -116,6 +116,10 @@ class SynapseProxy:
         return cls.entity_type_display_name(concrete_type) == cls.FILE_TYPE_DISPLAY_NAME
 
     @classmethod
+    def delete_skip_trash(cls, obj):
+        return cls.client().restDELETE(uri='/entity/{0}?skipTrashCan=true'.format(obj.get('id')))
+
+    @classmethod
     def users_teams(cls, user_id):
         """Gets all the teams a user is part of.
 

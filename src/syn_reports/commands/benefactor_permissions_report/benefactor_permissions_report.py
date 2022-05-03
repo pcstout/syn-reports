@@ -11,14 +11,21 @@ class BenefactorPermissionsReport:
     get the unique benefactors. This is much faster than walking the entire Project hierarchy.
     """
 
-    def __init__(self, entity_ids_or_names, out_path=None):
-        self._entity_ids_or_names = entity_ids_or_names
+    def __init__(self, entity_ids_or_names, out_path=None,
+                 out_file_prefix=None, out_file_per_entity=False,
+                 out_file_without_timestamp=False, out_file_name_max_length=None):
+        self._entity_ids_or_names = entity_ids_or_names if entity_ids_or_names is not None else []
         if self._entity_ids_or_names and not isinstance(self._entity_ids_or_names, list):
             self._entity_ids_or_names = [self._entity_ids_or_names]
         self._out_path = Utils.expand_path(out_path) if out_path else None
+        self._out_file_prefix = out_file_prefix
+        self._out_file_without_timestamp = out_file_without_timestamp
+        self._out_file_per_entity = out_file_per_entity
+        self._out_file_name_max_length = out_file_name_max_length
         self._csv_full_path = None
         self._csv_file = None
         self._csv_writer = None
+        self.csv_files_created = []
         self._view = None
         self.errors = []
 
@@ -41,22 +48,22 @@ class BenefactorPermissionsReport:
     def execute(self):
         SynapseProxy.login()
 
-        if self._out_path:
-            if self._out_path.lower().endswith('.csv'):
-                self._csv_full_path = self._out_path
-            else:
-                self._csv_full_path = os.path.join(self._out_path,
-                                                   'benefactor-permissions-{0}.csv'.format(Utils.timestamp_str()))
-            Utils.ensure_dirs(os.path.dirname(self._csv_full_path))
-            self._csv_file = open(self._csv_full_path, mode='w', newline='', encoding='utf-8')
-            self._csv_writer = csv.DictWriter(self._csv_file,
-                                              delimiter=',',
-                                              quotechar='"',
-                                              fieldnames=self.CSV_HEADERS,
-                                              quoting=csv.QUOTE_ALL)
-            self._csv_writer.writeheader()
+        if self._out_path and not self._out_file_per_entity:
+            if not self._start_csv():
+                return self
+
         try:
             self._view = BenefactorView()
+
+            if not self._entity_ids_or_names:
+                user = SynapseProxy.client().getUserProfile()
+                print('Loading all Projects accessible to user: {0}'.format(user.userName))
+                for activity in SynapseProxy.users_project_access(user.ownerId):
+                    project_id = activity['id']
+                    project_name = activity['name']
+                    self._entity_ids_or_names.append(project_id)
+                    print('  - Adding Project: {0} ({1})'.format(project_name, project_id))
+
             for id_or_name in self._entity_ids_or_names:
                 try:
                     print('=' * 80)
@@ -64,24 +71,73 @@ class BenefactorPermissionsReport:
                     entity = self._find_entity(id_or_name)
                     if entity:
                         entity_type = SynapseProxy.entity_type_display_name(entity)
-                        print('{0}: {1} ({2}) found.'.format(entity_type, entity['name'], entity['id']))
+                        entity_name = entity['name']
+                        if self._out_path and self._out_file_per_entity:
+                            if not self._start_csv(project_name=entity_name):
+                                return self
+
+                        print('{0}: {1} ({2}) found.'.format(entity_type, entity_name, entity['id']))
                         print('Creating Temporary Project and Views...')
                         self._view.set_scope(entity)
                         self._report_on_view()
+                        if self._out_path and self._out_file_per_entity:
+                            self._end_csv()
                     else:
                         self._show_error(
                             'Entity does not exist or you do not have access to the entity: {0}'.format(id_or_name))
                 except Exception as ex:
                     self._show_error('ERROR: {0}'.format(ex))
         finally:
-            if self._csv_file:
-                self._csv_file.close()
-            if self._csv_full_path:
+            self._end_csv()
+            if len(self.csv_files_created) > 0:
                 print('')
-                print('Report saved to: {0}'.format(self._csv_full_path))
+                print('Report(s) saved to:')
+                for csv_file in self.csv_files_created:
+                    print(csv_file)
             if self._view:
                 self._view.delete()
         return self
+
+    def _start_csv(self, project_name=None):
+        self._end_csv()
+
+        if self._out_path.lower().endswith('.csv'):
+            if self._out_file_per_entity:
+                self._show_error('Out path must be a directory when creating one output file per entity.')
+                return False
+            if self._out_file_prefix:
+                self._show_error('Out path prefix not allowed when creating one output file per entity.')
+                return False
+            self._csv_full_path = self._out_path
+        else:
+            prefix = self._out_file_prefix if self._out_file_prefix else 'benefactor-permissions'
+            timestamp = '' if self._out_file_without_timestamp else Utils.timestamp_str()
+            project_name = project_name if project_name else ''
+
+            csv_filename = '-'.join([s for s in [prefix, timestamp, project_name] if s])
+
+            if self._out_file_name_max_length:
+                csv_filename = csv_filename[:self._out_file_name_max_length]
+
+            csv_filename = csv_filename + '.csv'
+            self._csv_full_path = os.path.join(self._out_path, csv_filename)
+
+        Utils.ensure_dirs(os.path.dirname(self._csv_full_path))
+        self._csv_file = open(self._csv_full_path, mode='w', newline='', encoding='utf-8')
+        self._csv_writer = csv.DictWriter(self._csv_file,
+                                          delimiter=',',
+                                          quotechar='"',
+                                          fieldnames=self.CSV_HEADERS,
+                                          quoting=csv.QUOTE_ALL)
+        self._csv_writer.writeheader()
+        self.csv_files_created.append(self._csv_full_path)
+        return True
+
+    def _end_csv(self):
+        if self._csv_file:
+            self._csv_file.close()
+            self._csv_file = None
+            self._csv_writer = None
 
     def _show_error(self, msg):
         self.errors.append(msg)

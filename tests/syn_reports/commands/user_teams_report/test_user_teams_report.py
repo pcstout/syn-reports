@@ -38,23 +38,23 @@ def test_it_reports_by_username(capsys, syn_user, syn_team):
     assert_user_success_from_print(capsys, syn_user, syn_team)
 
 
-def test_it_does_not_blowup_if_user_not_found(capsys, syn_test_helper):
-    username = syn_test_helper.uniq_name(prefix='Invalid-User')
+def test_it_does_not_blowup_if_user_not_found(capsys, synapse_test_helper):
+    username = synapse_test_helper.uniq_name(prefix='Invalid-User')
     UserTeamsReport(username).execute()
     captured = capsys.readouterr()
     assert 'Could not find user matching: {0}'.format(username) in captured.err
 
 
-def test_it_outputs_csv_to_dir(capsys, syn_user, syn_team, mk_tempdir):
-    out_dir = mk_tempdir()
+def test_it_outputs_csv_to_dir(capsys, synapse_test_helper, syn_user, syn_team):
+    out_dir = synapse_test_helper.create_temp_dir()
     report = UserTeamsReport(syn_user.userName, out_path=out_dir)
     report.execute()
     assert_user_success_from_print(capsys, syn_user, syn_team)
     assert_success_from_csv(report._csv_full_path, syn_user, syn_team)
 
 
-def test_it_outputs_csv_to_file(capsys, syn_user, syn_team, mk_tempdir):
-    out_file = os.path.join(mk_tempdir(), 'outfile.csv')
+def test_it_outputs_csv_to_file(capsys, synapse_test_helper, syn_user, syn_team):
+    out_file = os.path.join(synapse_test_helper.create_temp_dir(), 'outfile.csv')
     report = UserTeamsReport(syn_user.userName, out_path=out_file)
     report.execute()
     assert report._csv_full_path == out_file
@@ -62,13 +62,13 @@ def test_it_outputs_csv_to_file(capsys, syn_user, syn_team, mk_tempdir):
     assert_success_from_csv(report._csv_full_path, syn_user, syn_team)
 
 
-def test_it_reports_on_has_member(capsys, syn_user, syn_team, mocker, syn_test_helper):
+def test_it_reports_on_has_member(capsys, syn_user, syn_team, mocker, synapse_test_helper):
     # Has the member
     UserTeamsReport(syn_user.ownerId, required_member_ids_or_usernames=syn_user.userName).execute()
     assert_user_success_from_print(capsys, syn_user, syn_team)
 
     # Aborts if cannot find the 'required_member'
-    fake_username = syn_test_helper.uniq_name(prefix='notarealusername')
+    fake_username = synapse_test_helper.uniq_name(prefix='notarealusername')
     UserTeamsReport(syn_user.ownerId, required_member_ids_or_usernames=fake_username).execute()
     captured = capsys.readouterr()
     assert 'Could not find user matching: {0}. Aborting.'.format(fake_username) in captured.err

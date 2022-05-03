@@ -49,8 +49,8 @@ def test_it_reports_all_permissions_by_project(capsys, syn_project, syn_folder, 
     assert_success_from_print(capsys, syn_project, syn_folder, syn_file)
 
 
-def test_it_outputs_csv_to_dir(capsys, syn_project, syn_folder, syn_file, mk_tempdir):
-    out_dir = mk_tempdir()
+def test_it_outputs_csv_to_dir(capsys, synapse_test_helper, syn_project, syn_folder, syn_file):
+    out_dir = synapse_test_helper.create_temp_dir()
     report = EntityPermissionsReport(syn_project.id, recursive=True, out_path=out_dir)
     report.execute()
     assert_success_from_print(capsys, syn_project, syn_folder, syn_file)
@@ -58,8 +58,8 @@ def test_it_outputs_csv_to_dir(capsys, syn_project, syn_folder, syn_file, mk_tem
     assert_success_from_csv(report._csv_full_path, syn_project)
 
 
-def test_it_outputs_csv_to_file(capsys, syn_project, syn_folder, syn_file, mk_tempdir):
-    out_file = os.path.join(mk_tempdir(), 'outfile.csv')
+def test_it_outputs_csv_to_file(capsys, synapse_test_helper, syn_project, syn_folder, syn_file):
+    out_file = os.path.join(synapse_test_helper.create_temp_dir(), 'outfile.csv')
     report = EntityPermissionsReport(syn_project.id, recursive=True, out_path=out_file)
     report.execute()
     assert report._csv_full_path == out_file
@@ -90,8 +90,8 @@ def test_it_cannot_report_files_by_name(capsys, syn_file):
     assert 'Entity does not exist or you do not have access to the entity.' in captured.err
 
 
-def test_it_does_not_raise_error_on_projects_not_found(capsys, syn_test_helper):
-    for id_or_name in ['syn000', syn_test_helper.uniq_name(prefix='DOES NOT EXIST')]:
+def test_it_does_not_raise_error_on_projects_not_found(capsys, synapse_test_helper):
+    for id_or_name in ['syn000', synapse_test_helper.uniq_name(prefix='DOES NOT EXIST')]:
         EntityPermissionsReport(id_or_name).execute()
         captured = capsys.readouterr()
         assert 'Entity does not exist or you do not have access to the entity.' in captured.err

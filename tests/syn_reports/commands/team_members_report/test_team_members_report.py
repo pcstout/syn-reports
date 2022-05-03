@@ -35,16 +35,16 @@ def test_it_does_not_blowup_if_entity_not_found(capsys):
     assert 'Team does not exist or you do not have access to the team.' in captured.err
 
 
-def test_it_outputs_csv_to_dir(capsys, syn_team, mk_tempdir):
-    out_dir = mk_tempdir()
+def test_it_outputs_csv_to_dir(capsys, synapse_test_helper, syn_team):
+    out_dir = synapse_test_helper.create_temp_dir()
     report = TeamMembersReport(syn_team.id, out_path=out_dir)
     report.execute()
     assert_success_from_print(capsys, syn_team)
     assert_success_from_csv(report._csv_full_path, syn_team)
 
 
-def test_it_outputs_csv_to_file(capsys, syn_team, mk_tempdir):
-    out_file = os.path.join(mk_tempdir(), 'outfile.csv')
+def test_it_outputs_csv_to_file(capsys, synapse_test_helper, syn_team):
+    out_file = os.path.join(synapse_test_helper.create_temp_dir(), 'outfile.csv')
     report = TeamMembersReport(syn_team.id, out_path=out_file)
     report.execute()
     assert report._csv_full_path == out_file

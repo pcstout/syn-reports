@@ -153,4 +153,4 @@ class BenefactorView(list):
 
     def delete(self):
         if self.view_project:
-            SynapseProxy.client().delete(self.view_project)
+            SynapseProxy.delete_skip_trash(self.view_project)
