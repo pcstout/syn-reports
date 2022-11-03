@@ -199,11 +199,31 @@ class BenefactorPermissionsReport:
                                                     from_team_id=user_or_team.id,
                                                     from_team_name=user_or_team.name,
                                                     from_team_user_is_manager=is_team_manager)
+                            team_invites = SynapseProxy.WithCache.get_team_open_invitations(user_or_team.id)
+                            for team_invite in team_invites:
+                                user_id = team_invite.get('inviteeId', None)
+                                email = team_invite.get('inviteeEmail', None)
+                                if user_id is not None:
+                                    user = SynapseProxy.WithCache.get_user(user_id)
+                                else:
+                                    user = email
+                                self._display_principal(entity,
+                                                        entity_type,
+                                                        entity_project_id,
+                                                        permission_level,
+                                                        user,
+                                                        from_team_id=user_or_team.id,
+                                                        from_team_name=user_or_team.name,
+                                                        from_team_user_is_manager=is_team_manager,
+                                                        is_invite=True)
+
+
             except Exception as ex:
                 self._show_error('Error loading ACL data: {0}'.format(ex))
 
-    def _display_principal(self, entity, entity_type, entity_project_id, permission_level, user_or_team,
-                           from_team_id=None, from_team_name=None, from_team_user_is_manager=None):
+    def _display_principal(self, entity, entity_type, entity_project_id, permission_level, user_or_team_or_email,
+                           from_team_id=None, from_team_name=None, from_team_user_is_manager=None,
+                           is_invite=False):
         indent = '  ' if from_team_id is None else '    '
         print('{0}---'.format(indent))
         principal_type = None
@@ -216,42 +236,53 @@ class BenefactorPermissionsReport:
         last_name = None
         user_data = None
 
-        if isinstance(user_or_team, syn.Team):
+        if isinstance(user_or_team_or_email, syn.Team):
             principal_type = 'Team'
-            team_name = user_or_team.name
-            team_id = user_or_team.id
+            team_name = user_or_team_or_email.name
+            team_id = user_or_team_or_email.id
             print('{0}Team: {1} ({2})'.format(indent, team_name, team_id))
-        elif user_or_team is None:
+        elif user_or_team_or_email is None:
             principal_type = 'Unknown'
             print('{0}Username/Team: Unknown - Script user ({1}) may not have access to this user/team data.)'.format(
                 indent, SynapseProxy._synapse_username))
             if from_team_name:
                 print('{0}From Team: {1} ({2})'.format(indent, from_team_name, from_team_id))
+        elif is_invite and isinstance(user_or_team_or_email, str):
+            principal_type = 'Invite'
+            username = user_or_team_or_email
         else:
-            principal_type = 'User'
-            user_id = user_or_team.ownerId
-            username = user_or_team.userName
-            first_name = user_or_team.get('firstName', None)
-            last_name = user_or_team.get('lastName', None)
+            if is_invite:
+                principal_type = 'Invite'
+            else:
+                principal_type = 'User'
+            user_id = user_or_team_or_email.ownerId
+            username = user_or_team_or_email.userName
+            first_name = user_or_team_or_email.get('firstName', None)
+            last_name = user_or_team_or_email.get('lastName', None)
 
             user_field_data = []
             for field in ['company', 'location', 'position']:
-                if user_or_team.get(field, None):
-                    user_field_data.append(user_or_team.get(field))
+                if user_or_team_or_email.get(field, None):
+                    user_field_data.append(user_or_team_or_email.get(field))
 
             user_data = ' - '.join(user_field_data)
 
+        if is_invite and user_id is None:
+            print('{0}Invited Email: {1}'.format(indent, username))
+        elif is_invite:
+            print('{0}Invited Username: {1} ({2})'.format(indent, username, user_id))
+        else:
             print('{0}Username: {1} ({2})'.format(indent, username, user_id))
-            if from_team_name:
-                print('{0}From Team: {1} ({2})'.format(indent, from_team_name, from_team_id))
-            if first_name:
-                print('{0}First Name: {1}'.format(indent, first_name))
-            if last_name:
-                print('{0}Last Name: {1}'.format(indent, last_name))
-            if user_data:
-                print('{0}User Data: {1}'.format(indent, user_data))
-            if is_team_manager is not None:
-                print('{0}Team Manager: {1}'.format(indent, is_team_manager))
+        if from_team_name:
+            print('{0}From Team: {1} ({2})'.format(indent, from_team_name, from_team_id))
+        if first_name:
+            print('{0}First Name: {1}'.format(indent, first_name))
+        if last_name:
+            print('{0}Last Name: {1}'.format(indent, last_name))
+        if user_data:
+            print('{0}User Data: {1}'.format(indent, user_data))
+        if is_team_manager is not None:
+            print('{0}Team Manager: {1}'.format(indent, is_team_manager))
 
         print('{0}Permission: {1}'.format(indent, permission_level))
 

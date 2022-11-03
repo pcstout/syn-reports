@@ -21,7 +21,9 @@ var/
 .venv
 .vscode
 .coverage
+.env
 htmlcov
 tests/private.*
 *.csv
 *.log
+.tox

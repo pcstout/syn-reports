@@ -191,6 +191,14 @@ class SynapseProxy:
             except (ValueError, syn.core.exceptions.SynapseHTTPError):
                 return []
 
+        @classmethod
+        @functools.lru_cache(maxsize=LRU_MAXSIZE, typed=True)
+        def get_team_open_invitations(cls, team_id):
+            try:
+                return list(SynapseProxy.client().get_team_open_invitations(team_id))
+            except (ValueError, syn.core.exceptions.SynapseHTTPError):
+                return []
+
     class Permissions:
         ADMIN = [
             'UPDATE',

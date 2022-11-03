@@ -179,3 +179,9 @@ make install_local
 ```
 
 See [Makefile](Makefile) for all commands.
+
+### Testing
+
+- Create and activate a virtual environment:
+- Rename [.env-template](.env-template) to [.env](.env) and set each of the variables.
+- Run the tests: `make test`

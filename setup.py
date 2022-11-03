@@ -19,6 +19,9 @@ setuptools.setup(
     classifiers=(
         "Programming Language :: Python",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: OS Independent",
     ),
@@ -28,6 +31,6 @@ setuptools.setup(
         ]
     },
     install_requires=[
-        "synapseclient>=2.1.0,<3.0.0"
+        "synapseclient>=2.3.1,<3.0.0"
     ]
 )

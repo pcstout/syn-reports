@@ -1,6 +1,7 @@
 import pytest
 import os
 import csv
+import json
 from src.syn_reports.commands.benefactor_permissions_report import BenefactorPermissionsReport
 from src.syn_reports.core import SynapseProxy, Utils
 
@@ -146,6 +147,61 @@ def test_it_outputs_csv_to_file_without_entity_parent_id_for_projects(capsys, sy
                 assert row['entity_parent_id'] == ''
             else:
                 assert row['entity_parent_id'] == syn_project.id
+
+
+def test_it_outputs_team_invites_by_user_to_csv(synapse_test_helper, syn_project):
+    project_team = synapse_test_helper.create_team()
+    SynapseProxy.client().setPermissions(syn_project, project_team.id,
+                                         accessType=SynapseProxy.Permissions.CAN_EDIT_AND_DELETE,
+                                         warn_if_inherits=False)
+    invite_user_id = os.environ.get('TEST_OTHER_SYNAPSE_USER_ID')
+    invite_user = SynapseProxy.client().getUserProfile(invite_user_id)
+    body = {
+        'teamId': project_team.id,
+        'inviteeId': invite_user_id
+    }
+    SynapseProxy.client().restPOST('/membershipInvitation', body=json.dumps(body))
+
+    out_file = os.path.join(synapse_test_helper.create_temp_dir(), 'outfile.csv')
+    report = BenefactorPermissionsReport(syn_project.id, out_path=out_file)
+    report.execute()
+    csv_passed = False
+    with open(out_file, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            if row['username'] == invite_user['userName']:
+                assert row['principal_type'] == 'Invite'
+                assert row['team_id'] == project_team.id
+                assert row['user_id'] == invite_user_id
+                csv_passed = True
+    assert csv_passed is True
+
+
+def test_it_outputs_team_invites_by_email_to_csv(synapse_test_helper, syn_project):
+    project_team = synapse_test_helper.create_team()
+    SynapseProxy.client().setPermissions(syn_project, project_team.id,
+                                         accessType=SynapseProxy.Permissions.CAN_EDIT_AND_DELETE,
+                                         warn_if_inherits=False)
+    invite_user_email = os.environ.get('TEST_EMAIL')
+    body = {
+        'teamId': project_team.id,
+        'inviteeEmail': invite_user_email
+    }
+    SynapseProxy.client().restPOST('/membershipInvitation', body=json.dumps(body))
+
+    out_file = os.path.join(synapse_test_helper.create_temp_dir(), 'outfile.csv')
+    report = BenefactorPermissionsReport(syn_project.id, out_path=out_file)
+    report.execute()
+    csv_passed = False
+    with open(out_file, newline='') as csvfile:
+        reader = csv.DictReader(csvfile)
+        for row in reader:
+            if row['username'] == invite_user_email:
+                assert row['principal_type'] == 'Invite'
+                assert row['team_id'] == project_team.id
+                assert row['user_id'] == ''
+                csv_passed = True
+    assert csv_passed is True
 
 
 def test_it_reports_on_folders_by_id(capsys, syn_folder):

@@ -1,26 +1,10 @@
 import pytest
-import os
-import json
-import shutil
-import tempfile
-import time
 from synapse_test_helper import SynapseTestHelper
 from src.syn_reports.core import SynapseProxy
 from src.syn_reports.cli import main as cli_main
+from dotenv import load_dotenv
 
-# Load Environment variables.
-module_dir = os.path.dirname(os.path.abspath(__file__))
-
-test_env_file = os.path.join(module_dir, 'private.test.env.json')
-
-if os.path.isfile(test_env_file):
-    with open(test_env_file) as f:
-        config = json.load(f).get('test')
-
-        for key, value in config.items():
-            os.environ[key] = value
-else:
-    print('WARNING: Test environment file not found at: {0}'.format(test_env_file))
+load_dotenv()
 
 
 @pytest.fixture(scope='session', autouse=True)

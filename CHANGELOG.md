@@ -1,5 +1,11 @@
 # Change Log
 
+## Version 0.0.16 (2022-11-03)
+
+### Added
+
+- Added invited users to benefactor-permissions report.
+
 ## Version 0.0.15 (2022-05-02)
 
 ### Added
