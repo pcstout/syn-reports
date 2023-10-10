@@ -1,6 +1,7 @@
 import os
 import csv
-from ...core import SynapseProxy, Utils
+from ...core import Utils
+from synapsis import Synapsis
 
 
 class UserTeamsReport:
@@ -32,8 +33,6 @@ class UserTeamsReport:
                    'is_admin']
 
     def execute(self):
-        SynapseProxy.login()
-
         if self._out_path:
             if self._out_path.lower().endswith('.csv'):
                 self._csv_full_path = self._out_path
@@ -52,7 +51,7 @@ class UserTeamsReport:
             required_members_usernames = []
             if self._required_member_ids_or_usernames:
                 for required_user_id_or_name in self._required_member_ids_or_usernames:
-                    required_user = SynapseProxy.WithCache.get_user(required_user_id_or_name)
+                    required_user = Utils.WithCache.get_user(required_user_id_or_name)
                     if required_user is None:
                         self._show_error(
                             'Could not find user matching: {0}. Aborting.'.format(required_user_id_or_name))
@@ -69,7 +68,7 @@ class UserTeamsReport:
                 print('=' * 80)
                 print('Looking up user: "{0}"...'.format(id_or_name))
 
-                user = SynapseProxy.WithCache.get_user(id_or_name)
+                user = Utils.WithCache.get_user(id_or_name)
 
                 if user:
                     user_id = user.ownerId
@@ -82,7 +81,7 @@ class UserTeamsReport:
                     if last_name:
                         print('Last Name: {0}'.format(last_name))
 
-                    teams = SynapseProxy.users_teams(user_id)
+                    teams = Utils.users_teams(user_id)
 
                     for team in teams:
                         team_id = team['id']
@@ -91,7 +90,7 @@ class UserTeamsReport:
                         # Check if the team has at least on of the required members.
                         if required_members:
                             found_match = False
-                            members = SynapseProxy.WithCache.get_team_members(team_id)
+                            members = Utils.WithCache.get_team_members(team_id)
                             for result in members:
                                 member = result.get('member')
                                 if member.get('userName') in required_members_usernames:
@@ -101,7 +100,7 @@ class UserTeamsReport:
                             if not found_match:
                                 continue
 
-                        team_member = SynapseProxy.client().restGET('/team/{0}/member/{1}'.format(team_id, user_id))
+                        team_member = Synapsis.restGET('/team/{0}/member/{1}'.format(team_id, user_id))
                         is_admin = team_member.get('isAdmin', False)
 
                         print('  ---')

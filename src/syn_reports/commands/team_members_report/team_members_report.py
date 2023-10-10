@@ -1,6 +1,7 @@
 import os
 import csv
-from ...core import SynapseProxy, Utils
+from ...core import Utils
+from synapsis import Synapsis
 
 
 class TeamMembersReport:
@@ -56,7 +57,7 @@ class TeamMembersReport:
         print('Looking up team: "{0}"...'.format(id_or_name))
         team = None
         try:
-            team = SynapseProxy.client().getTeam(id_or_name)
+            team = Synapsis.getTeam(id_or_name)
         except ValueError:
             # Team does not exist.
             pass
@@ -65,12 +66,12 @@ class TeamMembersReport:
 
         if team:
             try:
-                members = list(SynapseProxy.client().getTeamMembers(team))
+                members = list(Synapsis.getTeamMembers(team))
                 print('Found team: {0} ({1}) with {2} members.'.format(team.name, team.id, len(members)))
                 for record in members:
                     print('  ---')
                     member = record.get('member')
-                    user = SynapseProxy.WithCache.get_user(member.get('ownerId'))
+                    user = Utils.WithCache.get_user(member.get('ownerId'))
 
                     user_id = user.get('ownerId')
                     username = user.get('userName', None)

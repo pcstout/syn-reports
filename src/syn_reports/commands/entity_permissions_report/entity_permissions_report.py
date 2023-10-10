@@ -1,7 +1,8 @@
 import os
 import csv
 import synapseclient as syn
-from ...core import SynapseProxy, Utils
+from ...core import Utils
+from synapsis import Synapsis
 
 
 class EntityPermissionsReport:
@@ -64,53 +65,39 @@ class EntityPermissionsReport:
     def _report_on_entity(self, id_or_name, root_benefactor_id=None):
         print('=' * 80)
         print('Looking up entity: "{0}"...'.format(id_or_name))
-        entity = None
-        try:
-            if SynapseProxy.is_synapse_id(id_or_name):
-                syn_id_to_load = id_or_name
-            else:
-                syn_id_to_load = SynapseProxy.client().findEntityId(id_or_name)
+        entity_header = Utils.get_entity(id_or_name, self._show_error, only_header=True)
 
-            if syn_id_to_load:
-                entity = SynapseProxy.client().restGET('/entity/{0}/type'.format(syn_id_to_load))
-        except syn.core.exceptions.SynapseHTTPError:
-            # Entity does not exist.
-            pass
-        except Exception as ex:
-            self._show_error('Error loading entity: {0}'.format(ex))
-
-        if entity:
+        if entity_header:
             try:
-                entity_type = SynapseProxy.entity_type_display_name(entity)
-                print('{0}: {1} ({2}) found.'.format(entity_type, entity['name'], entity['id']))
-                benefactor_id = entity['benefactorId']
+                entity_type = Synapsis.ConcreteTypes.get(entity_header)
+                print('{0}: {1} ({2}) found.'.format(entity_type.name, entity_header['name'], entity_header['id']))
+                benefactor_id = entity_header['benefactorId']
 
                 # Only report on permissions that are different from the root entity's permissions.
                 if not self._report_on_all and (root_benefactor_id is not None and root_benefactor_id == benefactor_id):
                     print('  Permissions inherited from root entity.')
                 else:
-                    # NOTE: Do not use syn._getACL() as it will raise an error if the entity inherits its ACL.
-                    entity_acl = SynapseProxy.client().restGET('/entity/{0}/acl'.format(benefactor_id))
+                    # NOTE: Do not use syn._getACL() as it will raise an error if the entity inherits its ACL and
+                    # it is slower as it will make an API call to get the benefactorId.
+                    entity_acl = Synapsis.restGET('/entity/{0}/acl'.format(benefactor_id))
                     # Get the resource access items and sort them so they can be compared.
                     resource_accesses = sorted(entity_acl.get('resourceAccess', []), key=lambda r: r.get('principalId'))
-                    for resource in resource_accesses:
-                        resource.get('accessType').sort()
 
                     for resource in resource_accesses:
-                        user_or_team = SynapseProxy.WithCache.get_user_or_team(resource.get('principalId'))
-                        permission_level = SynapseProxy.Permissions.name(resource.get('accessType'))
-                        self._display_principal(entity, entity_type, permission_level, user_or_team)
+                        user_or_team = Utils.WithCache.get_user_or_team(resource.get('principalId'))
+                        permission = Synapsis.Permissions.get(resource.get('accessType'))
+                        self._display_principal(entity_header, entity_type, permission, user_or_team)
 
                         if isinstance(user_or_team, syn.Team):
-                            team_members = SynapseProxy.WithCache.get_team_members(user_or_team.id)
+                            team_members = Utils.WithCache.get_team_members(user_or_team.id)
                             for team_member in team_members:
                                 is_team_manager = team_member.get('isAdmin')
                                 member = team_member.get('member')
                                 user_id = member.get('ownerId')
-                                user = SynapseProxy.WithCache.get_user(user_id)
-                                self._display_principal(entity,
+                                user = Utils.WithCache.get_user(user_id)
+                                self._display_principal(entity_header,
                                                         entity_type,
-                                                        permission_level,
+                                                        permission,
                                                         user,
                                                         from_team_id=user_or_team.id,
                                                         from_team_name=user_or_team.name,
@@ -120,9 +107,9 @@ class EntityPermissionsReport:
                     if root_benefactor_id is None:
                         root_benefactor_id = benefactor_id
 
-                    if SynapseProxy.is_project(entity) or SynapseProxy.is_folder(entity):
-                        for child in SynapseProxy.client().getChildren(entity['id'],
-                                                                       includeTypes=['folder', 'file', 'table']):
+                    if entity_type.is_project or entity_type.is_folder:
+                        for child in Synapsis.getChildren(entity_header['id'],
+                                                          includeTypes=['folder', 'file', 'table']):
                             self._report_on_entity(child['id'], root_benefactor_id=root_benefactor_id)
 
             except Exception as ex:
@@ -130,7 +117,7 @@ class EntityPermissionsReport:
         else:
             self._show_error('Entity does not exist or you do not have access to the entity.')
 
-    def _display_principal(self, entity, entity_type, permission_level, user_or_team,
+    def _display_principal(self, entity, entity_type, permission, user_or_team,
                            from_team_id=None, from_team_name=None, from_team_user_is_manager=None):
         indent = '  ' if from_team_id is None else '    '
         print('{0}---'.format(indent))
@@ -151,8 +138,8 @@ class EntityPermissionsReport:
             print('{0}Team: {1} ({2})'.format(indent, team_name, team_id))
         elif user_or_team is None:
             principal_type = 'Unknown'
-            print('{0}Username/Team: Unknown - Script user ({1}) may not have access to this user/team data.)'.format(
-                indent, SynapseProxy._synapse_username))
+            print(
+                '{0}Username/Team: Unknown - Synapse user may not have access to this user/team data.)'.format(indent))
             if from_team_name:
                 print('{0}From Team: {1} ({2})'.format(indent, from_team_name, from_team_id))
         else:
@@ -174,11 +161,11 @@ class EntityPermissionsReport:
             if is_team_manager is not None:
                 print('{0}Team Manager: {1}'.format(indent, is_team_manager))
 
-        print('{0}Permission: {1}'.format(indent, permission_level))
+        print('{0}Permission: {1}'.format(indent, permission.name))
 
         if self._csv_writer:
             self._csv_writer.writerow({
-                'entity_type': entity_type,
+                'entity_type': entity_type.name,
                 'entity_id': entity['id'],
                 'entity_name': entity['name'],
                 'principal_type': principal_type,
@@ -190,7 +177,7 @@ class EntityPermissionsReport:
                 'first_name': first_name,
                 'last_name': last_name,
                 'emails': emails,
-                'permission_level': permission_level
+                'permission_level': permission.name
             })
 
     def _show_error(self, msg):

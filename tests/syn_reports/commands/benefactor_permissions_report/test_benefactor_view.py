@@ -1,8 +1,8 @@
 import pytest
 from synapseclient.core.exceptions import SynapseHTTPError
-from src.syn_reports.commands.benefactor_permissions_report import BenefactorView
-from src.syn_reports.core.synapse_proxy import SynapseProxy
+from syn_reports.commands.benefactor_permissions_report import BenefactorView
 import synapseclient as syn
+from synapsis import Synapsis
 
 
 @pytest.fixture()
@@ -13,16 +13,13 @@ def benefactor_view(synapse_test_helper):
         synapse_test_helper.dispose(bv.view_project)
 
 
-@pytest.fixture(scope='session')
-def grant_access(syn_client):
-    def _grant(syn_id, principal_id, access_type=SynapseProxy.Permissions.ADMIN):
-        syn_client.setPermissions(syn_id, principalId=principal_id, accessType=access_type, warn_if_inherits=False)
-
-    yield _grant
+def grant_access(syn_id, principal_id, permission=Synapsis.Permissions.ADMIN):
+    Synapsis.setPermissions(syn_id, principalId=principal_id, accessType=permission.access_types,
+                            warn_if_inherits=False)
 
 
 @pytest.fixture(scope='session')
-def test_data(synapse_test_helper, syn_client, grant_access):
+def test_data(synapse_test_helper, syn_client):
     # Project
     # file0
     # folder1/
@@ -36,19 +33,19 @@ def test_data(synapse_test_helper, syn_client, grant_access):
     project = synapse_test_helper.create_project(prefix='project_')
     file0 = synapse_test_helper.create_file(parent=project, path=synapse_test_helper.create_temp_file(),
                                             prefix='file0_')
-    grant_access(file0.id, user_id)
+    grant_access(file0, user_id)
 
     folder1 = synapse_test_helper.create_folder(parent=project, prefix='folder1_')
-    grant_access(folder1.id, user_id)
+    grant_access(folder1, user_id)
     file1 = synapse_test_helper.create_file(parent=folder1, path=synapse_test_helper.create_temp_file(),
                                             prefix='file1_')
-    grant_access(file1.id, user_id)
+    grant_access(file1, user_id)
 
     folder2 = synapse_test_helper.create_folder(parent=folder1, prefix='folder2_')
-    grant_access(folder2.id, user_id)
+    grant_access(folder2, user_id)
     file2 = synapse_test_helper.create_file(parent=folder2, path=synapse_test_helper.create_temp_file(),
                                             prefix='file2_')
-    grant_access(file2.id, user_id)
+    grant_access(file2, user_id)
 
     folder3 = synapse_test_helper.create_folder(parent=folder2, prefix='folder3_')
     grant_access(folder3, user_id)

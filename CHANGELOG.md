@@ -1,5 +1,12 @@
 # Change Log
 
+## Version 0.0.17 (2023-10-10)
+
+### Added
+
+- Only support Python 3.10+.
+- Added Synapsis.
+
 ## Version 0.0.16 (2022-11-03)
 
 ### Added

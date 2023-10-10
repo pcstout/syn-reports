@@ -1,18 +1,16 @@
 import pytest
 import os
 import csv
-import json
-from src.syn_reports.commands.benefactor_permissions_report import BenefactorPermissionsReport
-from src.syn_reports.core import SynapseProxy, Utils
+from syn_reports.commands.benefactor_permissions_report import BenefactorPermissionsReport
+from syn_reports.core import Utils
+from synapsis import Synapsis
 
 
 def assert_success_from_print(capsys, *entities):
     captured = capsys.readouterr()
     assert captured.err == ''
     for entity in entities:
-        log_msg = '{0}: {1} ({2})'.format(SynapseProxy.entity_type_display_name(entity),
-                                          entity.name,
-                                          entity.id)
+        log_msg = '{0}: {1} ({2})'.format(Synapsis.ConcreteTypes.get(entity).name, entity.name, entity.id)
         assert log_msg in captured.out
 
 
@@ -36,8 +34,7 @@ def test_it_reports_on_projects_by_name(capsys, syn_project):
 
 
 def test_it_reports_on_all_accessible_projects(capsys, syn_project, syn_project2, mocker):
-    mocker.patch('src.syn_reports.core.synapse_proxy.SynapseProxy.users_project_access',
-                 return_value=iter([syn_project, syn_project2]))
+    mocker.patch('syn_reports.core.utils.Utils.users_project_access', return_value=iter([syn_project, syn_project2]))
     BenefactorPermissionsReport(None).execute()
     assert_success_from_print(capsys, syn_project, syn_project2)
 
@@ -51,12 +48,12 @@ def test_it_does_not_blowup_if_entity_not_found(capsys):
 def test_it_reports_on_uniq_permissions(capsys, syn_project, syn_folder, syn_file, synapse_test_helper):
     folder_team = synapse_test_helper.create_team()
     file_team = synapse_test_helper.create_team()
-    SynapseProxy.client().setPermissions(syn_folder, folder_team.id,
-                                         accessType=SynapseProxy.Permissions.CAN_EDIT_AND_DELETE,
-                                         warn_if_inherits=False)
-    SynapseProxy.client().setPermissions(syn_file, file_team.id,
-                                         accessType=SynapseProxy.Permissions.CAN_EDIT_AND_DELETE,
-                                         warn_if_inherits=False)
+
+    Synapsis.setPermissions(syn_folder, folder_team.id, Synapsis.Permissions.CAN_EDIT_AND_DELETE.access_types,
+                            warn_if_inherits=False)
+    Synapsis.setPermissions(syn_file, file_team.id, Synapsis.Permissions.CAN_EDIT_AND_DELETE.access_types,
+                            warn_if_inherits=False)
+
     BenefactorPermissionsReport(syn_project.name).execute()
     assert_success_from_print(capsys, syn_project, syn_folder, syn_file)
 
@@ -126,12 +123,11 @@ def test_it_outputs_csv_to_file_without_entity_parent_id_for_projects(capsys, sy
                                                                       syn_project, syn_folder, syn_file):
     folder_team = synapse_test_helper.create_team()
     file_team = synapse_test_helper.create_team()
-    SynapseProxy.client().setPermissions(syn_folder, folder_team.id,
-                                         accessType=SynapseProxy.Permissions.CAN_EDIT_AND_DELETE,
-                                         warn_if_inherits=False)
-    SynapseProxy.client().setPermissions(syn_file, file_team.id,
-                                         accessType=SynapseProxy.Permissions.CAN_EDIT_AND_DELETE,
-                                         warn_if_inherits=False)
+
+    Synapsis.setPermissions(syn_folder, folder_team.id, Synapsis.Permissions.CAN_EDIT_AND_DELETE.access_types,
+                            warn_if_inherits=False)
+    Synapsis.setPermissions(syn_file, file_team.id, Synapsis.Permissions.CAN_EDIT_AND_DELETE.access_types,
+                            warn_if_inherits=False)
 
     out_file = os.path.join(synapse_test_helper.create_temp_dir(), 'outfile.csv')
     report = BenefactorPermissionsReport(syn_project.id, out_path=out_file)
@@ -151,16 +147,12 @@ def test_it_outputs_csv_to_file_without_entity_parent_id_for_projects(capsys, sy
 
 def test_it_outputs_team_invites_by_user_to_csv(synapse_test_helper, syn_project):
     project_team = synapse_test_helper.create_team()
-    SynapseProxy.client().setPermissions(syn_project, project_team.id,
-                                         accessType=SynapseProxy.Permissions.CAN_EDIT_AND_DELETE,
-                                         warn_if_inherits=False)
+    Synapsis.setPermissions(syn_project, project_team.id, Synapsis.Permissions.CAN_EDIT_AND_DELETE.access_types,
+                            warn_if_inherits=False)
+
     invite_user_id = os.environ.get('TEST_OTHER_SYNAPSE_USER_ID')
-    invite_user = SynapseProxy.client().getUserProfile(invite_user_id)
-    body = {
-        'teamId': project_team.id,
-        'inviteeId': invite_user_id
-    }
-    SynapseProxy.client().restPOST('/membershipInvitation', body=json.dumps(body))
+    invite_user = Synapsis.getUserProfile(invite_user_id)
+    Synapsis.Utils.invite_to_team(project_team, invite_user_id)
 
     out_file = os.path.join(synapse_test_helper.create_temp_dir(), 'outfile.csv')
     report = BenefactorPermissionsReport(syn_project.id, out_path=out_file)
@@ -179,15 +171,11 @@ def test_it_outputs_team_invites_by_user_to_csv(synapse_test_helper, syn_project
 
 def test_it_outputs_team_invites_by_email_to_csv(synapse_test_helper, syn_project):
     project_team = synapse_test_helper.create_team()
-    SynapseProxy.client().setPermissions(syn_project, project_team.id,
-                                         accessType=SynapseProxy.Permissions.CAN_EDIT_AND_DELETE,
-                                         warn_if_inherits=False)
+    Synapsis.setPermissions(syn_project, project_team.id, Synapsis.Permissions.CAN_EDIT_AND_DELETE.access_types,
+                            warn_if_inherits=False)
+
     invite_user_email = os.environ.get('TEST_EMAIL')
-    body = {
-        'teamId': project_team.id,
-        'inviteeEmail': invite_user_email
-    }
-    SynapseProxy.client().restPOST('/membershipInvitation', body=json.dumps(body))
+    Synapsis.Utils.invite_to_team(project_team, invite_user_email)
 
     out_file = os.path.join(synapse_test_helper.create_temp_dir(), 'outfile.csv')
     report = BenefactorPermissionsReport(syn_project.id, out_path=out_file)

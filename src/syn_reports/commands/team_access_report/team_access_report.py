@@ -1,6 +1,7 @@
 import os
 import csv
-from ...core import SynapseProxy, Utils
+from ...core import Utils
+from synapsis import Synapsis
 
 
 class TeamAccessReport:
@@ -27,7 +28,6 @@ class TeamAccessReport:
 
     def execute(self):
         raise NotImplementedError('This command has not been completed.')
-        SynapseProxy.login()
 
         if self._out_path:
             if self._out_path.lower().endswith('.csv'):
@@ -56,7 +56,7 @@ class TeamAccessReport:
         print('=' * 80)
         print('Looking up team: "{0}"...'.format(id_or_name))
         try:
-            team = SynapseProxy.client().getTeam(id_or_name)
+            team = Synapsis.getTeam(id_or_name)
         except ValueError:
             # Team does not exist.
             pass

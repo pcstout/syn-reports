@@ -1,6 +1,6 @@
 import pytest
 import os
-from src.syn_reports.commands.team_members_report import TeamMembersReport
+from syn_reports.commands.team_members_report import TeamMembersReport
 
 
 def assert_success_from_print(capsys, *teams):

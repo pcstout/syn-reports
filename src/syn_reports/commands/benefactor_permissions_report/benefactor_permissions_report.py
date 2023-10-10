@@ -2,7 +2,8 @@ import os
 import csv
 import synapseclient as syn
 from .benefactor_view import BenefactorView
-from ...core import SynapseProxy, Utils
+from ...core import Utils
+from synapsis import Synapsis
 
 
 class BenefactorPermissionsReport:
@@ -46,8 +47,6 @@ class BenefactorPermissionsReport:
                    'permission_level']
 
     def execute(self):
-        SynapseProxy.login()
-
         if self._out_path and not self._out_file_per_entity:
             if not self._start_csv():
                 return self
@@ -56,9 +55,9 @@ class BenefactorPermissionsReport:
             self._view = BenefactorView()
 
             if not self._entity_ids_or_names:
-                user = SynapseProxy.client().getUserProfile()
+                user = Synapsis.getUserProfile()
                 print('Loading all Projects accessible to user: {0}'.format(user.userName))
-                for activity in SynapseProxy.users_project_access(user.ownerId):
+                for activity in Utils.users_project_access(user.ownerId):
                     project_id = activity['id']
                     project_name = activity['name']
                     self._entity_ids_or_names.append(project_id)
@@ -68,15 +67,15 @@ class BenefactorPermissionsReport:
                 try:
                     print('=' * 80)
                     print('Looking up entity: "{0}"...'.format(id_or_name))
-                    entity = self._find_entity(id_or_name)
+                    entity = Utils.get_entity(id_or_name, self._show_error)
                     if entity:
-                        entity_type = SynapseProxy.entity_type_display_name(entity)
+                        entity_type = Synapsis.ConcreteTypes.get(entity)
                         entity_name = entity['name']
                         if self._out_path and self._out_file_per_entity:
                             if not self._start_csv(project_name=entity_name):
                                 return self
 
-                        print('{0}: {1} ({2}) found.'.format(entity_type, entity_name, entity['id']))
+                        print('{0}: {1} ({2}) found.'.format(entity_type.name, entity_name, entity['id']))
                         print('Creating Temporary Project and Views...')
                         self._view.set_scope(entity)
                         self._report_on_view()
@@ -143,74 +142,55 @@ class BenefactorPermissionsReport:
         self.errors.append(msg)
         Utils.eprint(msg)
 
-    def _find_entity(self, id_or_name):
-        entity = None
-        try:
-            if SynapseProxy.is_synapse_id(id_or_name):
-                syn_id_to_load = id_or_name
-            else:
-                syn_id_to_load = SynapseProxy.client().findEntityId(id_or_name)
-
-            if syn_id_to_load:
-                entity = SynapseProxy.client().get(syn_id_to_load)
-        except syn.core.exceptions.SynapseHTTPError:
-            # Entity does not exist.
-            pass
-        except Exception as ex:
-            self._show_error('Error loading entity: {0}'.format(ex))
-        return entity
-
     def _report_on_view(self):
         for item in self._view:
             try:
                 benefactor_id = item['benefactor_id']
                 entity_project_id = item['project_id']
 
-                entity = SynapseProxy.client().get(benefactor_id)
-                entity_type = SynapseProxy.entity_type_display_name(entity)
-                print('{0}: {1} ({2})'.format(entity_type, entity['name'], entity['id']))
+                entity = Synapsis.get(benefactor_id)
+                entity_type = Synapsis.ConcreteTypes.get(entity)
+                print('{0}: {1} ({2})'.format(entity_type.name, entity['name'], entity['id']))
 
                 # NOTE: Do not use syn._getACL() as it will raise an error if the entity inherits its ACL and
                 # it is slower as it will make an API call to get the benefactorId.
-                entity_acl = SynapseProxy.client().restGET('/entity/{0}/acl'.format(entity.id))
+                entity_acl = Synapsis.restGET('/entity/{0}/acl'.format(entity.id))
                 # Get the resource access items and sort them so they can be compared.
                 resource_accesses = sorted(entity_acl.get('resourceAccess', []), key=lambda r: r.get('principalId'))
-                for resource in resource_accesses:
-                    resource.get('accessType').sort()
 
                 for resource in resource_accesses:
-                    user_or_team = SynapseProxy.WithCache.get_user_or_team(resource.get('principalId'))
-                    permission_level = SynapseProxy.Permissions.name(resource.get('accessType'))
+                    user_or_team = Utils.WithCache.get_user_or_team(resource.get('principalId'))
+                    permission = Synapsis.Permissions.get(resource.get('accessType'))
 
-                    self._display_principal(entity, entity_type, entity_project_id, permission_level, user_or_team)
+                    self._display_principal(entity, entity_type, entity_project_id, permission, user_or_team)
 
                     if isinstance(user_or_team, syn.Team):
-                        team_members = SynapseProxy.WithCache.get_team_members(user_or_team.id)
+                        team_members = Utils.WithCache.get_team_members(user_or_team.id)
                         for team_member in team_members:
                             is_team_manager = team_member.get('isAdmin')
                             member = team_member.get('member')
                             user_id = member.get('ownerId')
-                            user = SynapseProxy.WithCache.get_user(user_id)
+                            user = Utils.WithCache.get_user(user_id)
                             self._display_principal(entity,
                                                     entity_type,
                                                     entity_project_id,
-                                                    permission_level,
+                                                    permission,
                                                     user,
                                                     from_team_id=user_or_team.id,
                                                     from_team_name=user_or_team.name,
                                                     from_team_user_is_manager=is_team_manager)
-                            team_invites = SynapseProxy.WithCache.get_team_open_invitations(user_or_team.id)
+                            team_invites = Utils.WithCache.get_team_open_invitations(user_or_team.id)
                             for team_invite in team_invites:
                                 user_id = team_invite.get('inviteeId', None)
                                 email = team_invite.get('inviteeEmail', None)
                                 if user_id is not None:
-                                    user = SynapseProxy.WithCache.get_user(user_id)
+                                    user = Utils.WithCache.get_user(user_id)
                                 else:
                                     user = email
                                 self._display_principal(entity,
                                                         entity_type,
                                                         entity_project_id,
-                                                        permission_level,
+                                                        permission,
                                                         user,
                                                         from_team_id=user_or_team.id,
                                                         from_team_name=user_or_team.name,
@@ -221,7 +201,7 @@ class BenefactorPermissionsReport:
             except Exception as ex:
                 self._show_error('Error loading ACL data: {0}'.format(ex))
 
-    def _display_principal(self, entity, entity_type, entity_project_id, permission_level, user_or_team_or_email,
+    def _display_principal(self, entity, entity_type, entity_project_id, permission, user_or_team_or_email,
                            from_team_id=None, from_team_name=None, from_team_user_is_manager=None,
                            is_invite=False):
         indent = '  ' if from_team_id is None else '    '
@@ -243,8 +223,8 @@ class BenefactorPermissionsReport:
             print('{0}Team: {1} ({2})'.format(indent, team_name, team_id))
         elif user_or_team_or_email is None:
             principal_type = 'Unknown'
-            print('{0}Username/Team: Unknown - Script user ({1}) may not have access to this user/team data.)'.format(
-                indent, SynapseProxy._synapse_username))
+            print(
+                '{0}Username/Team: Unknown - Synapse user may not have access to this user/team data.)'.format(indent))
             if from_team_name:
                 print('{0}From Team: {1} ({2})'.format(indent, from_team_name, from_team_id))
         elif is_invite and isinstance(user_or_team_or_email, str):
@@ -284,17 +264,17 @@ class BenefactorPermissionsReport:
         if is_team_manager is not None:
             print('{0}Team Manager: {1}'.format(indent, is_team_manager))
 
-        print('{0}Permission: {1}'.format(indent, permission_level))
+        print('{0}Permission: {1}'.format(indent, permission.name))
 
         entity_parent_id = entity['parentId']
         # Do not include the parent ID for projects since no one has access to that container, and
         # it's not needed or useful.
-        if SynapseProxy.is_project(entity):
+        if Synapsis.ConcreteTypes.get(entity).is_project:
             entity_parent_id = None
 
         if self._csv_writer:
             self._csv_writer.writerow({
-                'entity_type': entity_type,
+                'entity_type': entity_type.name,
                 'entity_id': entity['id'],
                 'entity_name': entity['name'],
                 'entity_parent_id': entity_parent_id,
@@ -308,5 +288,5 @@ class BenefactorPermissionsReport:
                 'first_name': first_name,
                 'last_name': last_name,
                 'user_data': user_data,
-                'permission_level': permission_level
+                'permission_level': permission.name
             })

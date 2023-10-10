@@ -1,12 +1,11 @@
 import pytest
 import os
-from src.syn_reports.commands.user_teams_report import UserTeamsReport
-from src.syn_reports.core.synapse_proxy import SynapseProxy
+from syn_reports.commands.user_teams_report import UserTeamsReport
 
 
 @pytest.fixture(scope='session')
 def syn_user(syn_client):
-    return syn_client.getUserProfile(os.environ.get('SYNAPSE_USERNAME'))
+    return syn_client.getUserProfile()
 
 
 def assert_user_success_from_print(capsys, user, *teams):
@@ -77,8 +76,7 @@ def test_it_reports_on_has_member(capsys, syn_user, syn_team, mocker, synapse_te
     assert 'Team: {0} ({1})'.format(syn_team.name, syn_team.id) not in captured.out
 
     # Does not have the member in the team
-    mocker.patch('src.syn_reports.core.synapse_proxy.SynapseProxy.WithCache.get_team_members',
-                 return_value=[])
+    mocker.patch('syn_reports.core.utils.Utils.WithCache.get_team_members', return_value=[])
     UserTeamsReport(syn_user.ownerId, required_member_ids_or_usernames=syn_user.userName).execute()
     captured = capsys.readouterr()
     assert 'Only including teams that have members: {0}'.format(syn_user.userName) in captured.out

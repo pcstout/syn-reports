@@ -2,7 +2,8 @@ import functools
 import os
 import csv
 import synapseclient as syn
-from ...core import SynapseProxy, Utils
+from ...core import Utils
+from synapsis import Synapsis
 
 
 class UserProjectAccessReport:
@@ -12,10 +13,11 @@ class UserProjectAccessReport:
           This is a Synapse limitation.
     """
 
-    def __init__(self, user_ids_or_usernames, out_path=None):
+    def __init__(self, user_ids_or_usernames, only_created_by=False, out_path=None):
         self._user_ids_or_usernames = user_ids_or_usernames
         if self._user_ids_or_usernames and not isinstance(self._user_ids_or_usernames, list):
             self._user_ids_or_usernames = [self._user_ids_or_usernames]
+        self.only_created_by = only_created_by
         self._out_path = Utils.expand_path(out_path) if out_path else None
         self._csv_full_path = None
         self._csv_file = None
@@ -28,11 +30,12 @@ class UserProjectAccessReport:
                    'last_name',
                    'project_id',
                    'project_name',
-                   'permission_level']
+                   'permission_level',
+                   'project_created_by',
+                   'project_created_by_id'
+                   ]
 
     def execute(self):
-        SynapseProxy.login()
-
         if self._out_path:
             if self._out_path.lower().endswith('.csv'):
                 self._csv_full_path = self._out_path
@@ -53,7 +56,7 @@ class UserProjectAccessReport:
                 print('Looking up user: "{0}"...'.format(id_or_name))
 
                 try:
-                    user = SynapseProxy.client().getUserProfile(id_or_name, refresh=True)
+                    user = Utils.WithCache.get_user(id_or_name)
                 except ValueError:
                     # User does not exist
                     user = None
@@ -69,23 +72,35 @@ class UserProjectAccessReport:
                     if last_name:
                         print('  Last Name: {0}'.format(last_name))
 
-                    for activity in SynapseProxy.users_project_access(user_id):
+                    for activity in Utils.users_project_access(user_id):
                         project_id = activity['id']
-                        project_name = activity['name']
-                        users_permission = self._get_permissions(project_id, principal_id=user_id)
-                        permission_level = SynapseProxy.Permissions.name(users_permission)
+                        project = Synapsis.get(project_id)
+                        created_by_id = project.createdBy
+                        created_by = Utils.WithCache.get_user(created_by_id)
+                        created_by_username = created_by.userName
 
-                        print('    Project: {0} ({1}) [{2}]'.format(project_name, project_id, permission_level))
-                        if self._csv_writer:
-                            self._csv_writer.writerow({
-                                'user_id': user_id,
-                                'username': username,
-                                'first_name': first_name,
-                                'last_name': last_name,
-                                'project_id': project_id,
-                                'project_name': project_name,
-                                'permission_level': permission_level
-                            })
+                        if not self.only_created_by or (self.only_created_by and user_id == created_by_id):
+                            project_name = activity['name']
+                            user_permission = self._get_permission(project_id, principal_id=user_id)
+
+                            print('    Project: {0} (ID: {1}, Permission: {2}, Created By: {3})'.format(
+                                project_name,
+                                project_id,
+                                user_permission.name,
+                                created_by_username))
+
+                            if self._csv_writer:
+                                self._csv_writer.writerow({
+                                    'user_id': user_id,
+                                    'username': username,
+                                    'first_name': first_name,
+                                    'last_name': last_name,
+                                    'project_id': project_id,
+                                    'project_name': project_name,
+                                    'permission_level': user_permission.name,
+                                    'project_created_by': created_by_username,
+                                    'project_created_by_id': created_by_id
+                                })
                 else:
                     self._show_error('Could not find user matching: {0}'.format(id_or_name))
         finally:
@@ -96,35 +111,34 @@ class UserProjectAccessReport:
                 print('Report saved to: {0}'.format(self._csv_full_path))
         return self
 
-    def _get_permissions(self, entity, principal_id):
-        """Get the permissions that a user or group has on an Entity.
+    def _get_permission(self, entity, principal_id):
+        """Get the permission that a user or group has on an Entity.
 
         :param entity:      An Entity or Synapse ID to lookup
         :param principal_id: Identifier of a user or group
 
-        :returns: An array containing some combination of
-                  ['READ', 'CREATE', 'UPDATE', 'DELETE', 'CHANGE_PERMISSIONS', 'DOWNLOAD']
-                  or an empty array
+        :returns: Synapsis.Permission or Synapsis.Permissions.NO_PERMISSION
         """
         # TODO: make this method return the highest permission the user has.
-        principal_id = SynapseProxy.client()._getUserbyPrincipalIdOrName(principal_id)
-        acl = SynapseProxy.client()._getACL(entity)
+        principal_id = Synapsis._getUserbyPrincipalIdOrName(principal_id)
+        acl = Synapsis._getACL(entity)
+        resource_access = acl['resourceAccess']
 
         # Look for the principal's individual permission on the entity.
-        for resource in acl['resourceAccess']:
+        for resource in resource_access:
             if 'principalId' in resource and resource['principalId'] == int(principal_id):
-                return resource['accessType']
+                return Synapsis.Permissions.get(resource['accessType'])
 
         # Look for the principal's permission via a team on the entity.
         teams = self._get_users_teams(principal_id)
-        team_ids = [int(t['id']) for t in teams]
-        for resource in acl['resourceAccess']:
+        team_ids = Synapsis.utils.map(teams, lambda id: int(id), key='id')
+        for resource in resource_access:
             if resource['principalId'] in team_ids:
-                return resource['accessType']
+                return Synapsis.Permissions.get(resource['accessType'])
 
-        return []
+        return Synapsis.Permissions.NO_PERMISSION
 
-    @functools.lru_cache(maxsize=SynapseProxy.WithCache.LRU_MAXSIZE, typed=True)
+    @functools.lru_cache(maxsize=Utils.WithCache.LRU_MAXSIZE, typed=True)
     def _get_users_teams(self, user_id):
         """Get all the teams a user is part of.
 
@@ -135,7 +149,7 @@ class UserProjectAccessReport:
             List
         """
         try:
-            return list(SynapseProxy.users_teams(user_id))
+            return list(Utils.users_teams(user_id))
         except syn.core.exceptions.SynapseHTTPError:
             return []
 

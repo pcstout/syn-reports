@@ -8,6 +8,11 @@ def create(subparsers, parents):
     parser.add_argument('users',
                         nargs='+',
                         help='The IDs and/or usernames of the users to report on.')
+    parser.add_argument('--only-created-by',
+                        default=False,
+                        action='store_true',
+                        help='Only report the projects that were created by by each user.'
+                        )
     parser.add_argument('-o', '--out-path', default=None,
                         help='Path to export the report to. Specify a path that ends in ".csv" to export to a specific file otherwise a timestamped filename will be created in the out-path.')
     parser.set_defaults(_execute=execute)
@@ -16,5 +21,6 @@ def create(subparsers, parents):
 def execute(args):
     return UserProjectAccessReport(
         args.users,
+        only_created_by=args.only_created_by,
         out_path=args.out_path
     ).execute()

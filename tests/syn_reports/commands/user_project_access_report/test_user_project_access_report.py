@@ -1,11 +1,11 @@
 import pytest
 import os
-from src.syn_reports.commands.user_project_access_report import UserProjectAccessReport
+from syn_reports.commands.user_project_access_report import UserProjectAccessReport
 
 
 @pytest.fixture(scope='session')
 def syn_user(syn_client):
-    return syn_client.getUserProfile(os.environ.get('SYNAPSE_USERNAME'))
+    return syn_client.getUserProfile()
 
 
 def assert_user_success_from_print(capsys, *users):
@@ -19,7 +19,7 @@ def assert_project_success_from_print(capsys, *projects):
     captured = capsys.readouterr()
     assert captured.err == ''
     for project in projects:
-        'Project: {0} ({1}) [{2}]'.format(project.name, project.id, 'Adminitrator') in captured.out
+        'Project: {0} ({1}) [{2}]'.format(project.name, project.id, 'Administrator') in captured.out
 
 
 def assert_success_from_csv(csv_full_path, user, *entities):
@@ -41,6 +41,12 @@ def test_it_reports_by_user_id(capsys, syn_user, syn_project):
 
 def test_it_reports_by_username(capsys, syn_user, syn_project):
     UserProjectAccessReport(syn_user.userName).execute()
+    assert_user_success_from_print(capsys, syn_user)
+    assert_project_success_from_print(capsys, syn_project)
+
+
+def test_it_reports_projects_that_the_user_created(capsys, syn_user, syn_project):
+    UserProjectAccessReport(syn_user.ownerId, only_created_by=True).execute()
     assert_user_success_from_print(capsys, syn_user)
     assert_project_success_from_print(capsys, syn_project)
 
