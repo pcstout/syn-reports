@@ -148,14 +148,15 @@ class BenefactorPermissionsReport:
                 benefactor_id = item['benefactor_id']
                 entity_project_id = item['project_id']
 
-                entity = Synapsis.get(benefactor_id)
+                bundle = Utils.WithCache.get_bundle(benefactor_id,
+                                                    include_entity=True,
+                                                    include_access_control_list=True)
+                entity = bundle['entity']
                 entity_type = Synapsis.ConcreteTypes.get(entity)
                 print('{0}: {1} ({2})'.format(entity_type.name, entity['name'], entity['id']))
 
-                # NOTE: Do not use syn._getACL() as it will raise an error if the entity inherits its ACL and
-                # it is slower as it will make an API call to get the benefactorId.
-                entity_acl = Synapsis.restGET('/entity/{0}/acl'.format(entity.id))
-                # Get the resource access items and sort them so they can be compared.
+                entity_acl = bundle.get('accessControlList')
+                # Get the resource access items and sort them.
                 resource_accesses = sorted(entity_acl.get('resourceAccess', []), key=lambda r: r.get('principalId'))
 
                 for resource in resource_accesses:

@@ -30,6 +30,6 @@ setuptools.setup(
     },
     install_requires=[
         "synapseclient>=2.3.1,<3.0.0",
-        "synapsis>=0.0.5"
+        "synapsis>=0.0.7"
     ]
 )

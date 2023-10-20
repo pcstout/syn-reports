@@ -49,10 +49,10 @@ def test_it_reports_on_uniq_permissions(capsys, syn_project, syn_folder, syn_fil
     folder_team = synapse_test_helper.create_team()
     file_team = synapse_test_helper.create_team()
 
-    Synapsis.setPermissions(syn_folder, folder_team.id, Synapsis.Permissions.CAN_EDIT_AND_DELETE.access_types,
-                            warn_if_inherits=False)
-    Synapsis.setPermissions(syn_file, file_team.id, Synapsis.Permissions.CAN_EDIT_AND_DELETE.access_types,
-                            warn_if_inherits=False)
+    Synapsis.Utils.set_entity_permission(syn_folder, folder_team, Synapsis.Permissions.CAN_EDIT_AND_DELETE,
+                                         warn_if_inherits=False)
+    Synapsis.Utils.set_entity_permission(syn_file, file_team, Synapsis.Permissions.CAN_EDIT_AND_DELETE,
+                                         warn_if_inherits=False)
 
     BenefactorPermissionsReport(syn_project.name).execute()
     assert_success_from_print(capsys, syn_project, syn_folder, syn_file)
@@ -124,10 +124,10 @@ def test_it_outputs_csv_to_file_without_entity_parent_id_for_projects(capsys, sy
     folder_team = synapse_test_helper.create_team()
     file_team = synapse_test_helper.create_team()
 
-    Synapsis.setPermissions(syn_folder, folder_team.id, Synapsis.Permissions.CAN_EDIT_AND_DELETE.access_types,
-                            warn_if_inherits=False)
-    Synapsis.setPermissions(syn_file, file_team.id, Synapsis.Permissions.CAN_EDIT_AND_DELETE.access_types,
-                            warn_if_inherits=False)
+    Synapsis.Utils.set_entity_permission(syn_folder, folder_team, Synapsis.Permissions.CAN_EDIT_AND_DELETE,
+                                         warn_if_inherits=False)
+    Synapsis.Utils.set_entity_permission(syn_file, file_team, Synapsis.Permissions.CAN_EDIT_AND_DELETE,
+                                         warn_if_inherits=False)
 
     out_file = os.path.join(synapse_test_helper.create_temp_dir(), 'outfile.csv')
     report = BenefactorPermissionsReport(syn_project.id, out_path=out_file)
@@ -147,8 +147,9 @@ def test_it_outputs_csv_to_file_without_entity_parent_id_for_projects(capsys, sy
 
 def test_it_outputs_team_invites_by_user_to_csv(synapse_test_helper, syn_project):
     project_team = synapse_test_helper.create_team()
-    Synapsis.setPermissions(syn_project, project_team.id, Synapsis.Permissions.CAN_EDIT_AND_DELETE.access_types,
-                            warn_if_inherits=False)
+
+    Synapsis.Utils.set_entity_permission(syn_project, project_team, Synapsis.Permissions.CAN_EDIT_AND_DELETE,
+                                         warn_if_inherits=False)
 
     invite_user_id = os.environ.get('TEST_OTHER_SYNAPSE_USER_ID')
     invite_user = Synapsis.getUserProfile(invite_user_id)
@@ -171,9 +172,8 @@ def test_it_outputs_team_invites_by_user_to_csv(synapse_test_helper, syn_project
 
 def test_it_outputs_team_invites_by_email_to_csv(synapse_test_helper, syn_project):
     project_team = synapse_test_helper.create_team()
-    Synapsis.setPermissions(syn_project, project_team.id, Synapsis.Permissions.CAN_EDIT_AND_DELETE.access_types,
-                            warn_if_inherits=False)
-
+    assert Synapsis.Utils.set_entity_permission(syn_project, project_team, Synapsis.Permissions.CAN_EDIT_AND_DELETE,
+                                                warn_if_inherits=False)
     invite_user_email = os.environ.get('TEST_EMAIL')
     Synapsis.Utils.invite_to_team(project_team, invite_user_email)
 

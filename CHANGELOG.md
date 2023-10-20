@@ -1,5 +1,11 @@
 # Change Log
 
+## Version 0.0.18 (2023-10-19)
+
+### Changes
+
+- Improved `benefactor-permissions` performance.
+
 ## Version 0.0.17 (2023-10-10)
 
 ### Added

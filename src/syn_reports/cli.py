@@ -1,15 +1,14 @@
 import argparse
 import sys
-import os
-import logging
+from datetime import datetime
 from .commands.team_members_report import cli as team_members_report_cli
 from .commands.benefactor_permissions_report import cli as benefactor_permissions_report_cli
 from .commands.entity_permissions_report import cli as entity_permissions_report_cli
 from .commands.user_project_access_report import cli as user_project_access_report_cli
 from .commands.user_teams_report import cli as user_teams_report_cli
-from .commands.team_access_report import cli as team_access_report_cli  # TODO: Uncomment when fully implemented.
+# from .commands.team_access_report import cli as team_access_report_cli  # TODO: Uncomment when fully implemented.
 from ._version import __version__
-from synapsis import cli as synapsis_cli, Synapsis
+from synapsis import cli as synapsis_cli
 
 ALL_ACTIONS = [
     benefactor_permissions_report_cli,
@@ -18,21 +17,6 @@ ALL_ACTIONS = [
     user_teams_report_cli,
     team_members_report_cli
 ]
-
-
-def __on_after_login__(hook):
-    for name, default, attr in [
-        ('SYNTOOLS_MULTI_THREADED', 'False', 'multi_threaded'),
-        ('SYNTOOLS_USE_BOTO_STS_TRANSFERS', 'False', 'use_boto_sts_transfers')
-    ]:
-        env_value = os.environ.get(name, default).lower() == 'true'
-        setattr(Synapsis.Synapse, attr, env_value)
-        if env_value:
-            logging.info('Setting {0}={1}'.format(attr, env_value))
-
-
-def __init__hooks__():
-    Synapsis.hooks.after_login(__on_after_login__)
 
 
 def main(args=None):
@@ -48,21 +32,26 @@ def main(args=None):
     cmd_args = main_parser.parse_args(args)
 
     if '_execute' in cmd_args:
+        exit_code = 1
         try:
-            __init__hooks__()
-            synapsis_cli.configure(cmd_args, login=True)
+            start_time = datetime.now()
+            synapsis_cli.configure(cmd_args, synapse_args={'multi_threaded': False}, login=True)
             cmd = cmd_args._execute(cmd_args)
+            end_time = datetime.now()
             if cmd.errors:
                 print('Finished with errors.')
                 for error in cmd.errors:
                     print(error)
-                sys.exit(1)
+                exit_code = 1
             else:
                 print('Finished successfully.')
-                sys.exit(0)
+                exit_code = 0
         except Exception as ex:
             print(ex)
-            sys.exit(1)
+            exit_code = 1
+        finally:
+            print('Run time: {0}'.format(end_time - start_time))
+            sys.exit(exit_code)
     else:
         main_parser.print_help()
         sys.exit(1)

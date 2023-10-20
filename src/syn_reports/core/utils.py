@@ -107,6 +107,35 @@ class Utils:
         LRU_MAXSIZE = (os.cpu_count() or 1) * 16
 
         @classmethod
+        def clear_cache(cls):
+            for method in [
+                cls.get_bundle,
+                cls.get_project_id,
+                cls.get_user,
+                cls.get_team,
+                cls.get_user_or_team,
+                cls.get_team_members,
+                cls.get_team_open_invitations
+            ]:
+                method.cache_clear()
+
+        @classmethod
+        @functools.lru_cache(maxsize=LRU_MAXSIZE, typed=True)
+        def get_bundle(cls, entity_id, **kwargs):
+            try:
+                return Synapsis.Utils.get_bundle(entity_id, **kwargs)
+            except (ValueError, syn.core.exceptions.SynapseHTTPError):
+                return None
+
+        @classmethod
+        @functools.lru_cache(maxsize=LRU_MAXSIZE, typed=True)
+        def get_project_id(cls, entity_id):
+            try:
+                return Synapsis.Utils.get_project(entity_id, id_only=True)
+            except (ValueError, syn.core.exceptions.SynapseHTTPError):
+                return None
+
+        @classmethod
         @functools.lru_cache(maxsize=LRU_MAXSIZE, typed=True)
         def get_user(cls, username_or_id):
             try:

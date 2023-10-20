@@ -44,7 +44,7 @@ class BenefactorView(list):
 
     def _create_folder_and_file_view(self):
         """Creates a view for all the folders and files within the current scope object.
-        If a view cannot be created this method will fallback to adding each folder/file individually.
+        If a view cannot be created this method will fall back to adding each folder/file individually.
         """
         try:
             self._query_view(self._create_view([syn.EntityViewType.FOLDER, syn.EntityViewType.FILE]))
@@ -53,6 +53,8 @@ class BenefactorView(list):
                 print('Cannot create Folder/File view for: {0}. Falling back to individual loading and views.'.format(
                     self.scope.name))
                 self._fallback_add_folders_and_files()
+            else:
+                raise
 
     def _fallback_add_folders_and_files(self):
         """This will add the benefactor data into self for each folder and file in the current scope,
@@ -62,6 +64,7 @@ class BenefactorView(list):
         Synapse has a limit of 20,000 objects in a container. If one of the projects or folders exceeds this number
         then we need to fallback to loading the benefactor data this way.
         """
+        project_id = Utils.WithCache.get_project_id(Synapsis.id_of(self.scope))
         child_items = list(Synapsis.getChildren(self.scope, includeTypes=["folder", "file"]))
         folder_ids = []
 
@@ -75,7 +78,7 @@ class BenefactorView(list):
                                                         child_item_id,
                                                         child_added_count,
                                                         len(child_items)))
-            self._add_single_scope_item(child_item_id)
+            self._add_single_scope_item(child_item_id, project_id=project_id)
             if child_type.is_folder:
                 folder_ids.append(child_item_id)
 
@@ -90,7 +93,7 @@ class BenefactorView(list):
                                                                             len(folder_ids)))
             self.set_scope(syn_folder, clear=False)
 
-    def _add_single_scope_item(self, entity_or_id):
+    def _add_single_scope_item(self, entity_or_id, project_id=None):
         """Gets the benefactor data for a single entity and adds it to self.
 
         Args:
@@ -99,9 +102,11 @@ class BenefactorView(list):
         Returns:
             None
         """
-        project = Synapsis.Utils.get_project(entity_or_id)
-        benefactor_id = Synapsis._getBenefactor(entity_or_id).get('id')
-        self._add_item(benefactor_id, project.id)
+        benefactor_header = Synapsis.restGET('/entity/{0}/benefactor'.format(Synapsis.id_of(entity_or_id)))
+        benefactor_id = benefactor_header.get('id')
+        if project_id is None:
+            project_id = Utils.WithCache.get_project_id(Synapsis.id_of(entity_or_id))
+        self._add_item(benefactor_id, project_id)
 
     def _query_view(self, view):
         query = 'SELECT DISTINCT {0},{1} FROM {2}'.format(self.COL_BENEFACTORID, self.COL_PROJECTID, view.id)

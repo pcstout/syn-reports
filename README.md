@@ -16,31 +16,39 @@ pip install syn-reports
 
 ## Configuration
 
-Your Synapse credential can be provided on the command line or with environment variables.
+### Environment Variables
 
-Environment Variables:
+No configuration is necessary if using environment variables or the default synapse config file.
+For user/pass, set:
 
 ```shell
-# For auth token, set:
-SYNAPSE_AUTH_TOKEN=
-
-# For Synapse Config file, have a valid config file in:
-~/.synapseConfig
-# Or, have the environment variable set:
-SYNAPSE_CONFIG_FILE=
+SYNAPSE_USERNAME=
+SYNAPSE_PASSWORD=
 ```
 
-Command Line:
+For auth token, set:
 
 ```shell
--u USERNAME, --username USERNAME
-                      Synapse username.
--p PASSWORD, --password PASSWORD
-                      Synapse password.
---auth-token AUTH_TOKEN
-                      Synapse auth token.
---synapse-config SYNAPSE_CONFIG
-                      Path to Synapse configuration file.
+SYNAPSE_AUTH_TOKEN=
+```
+
+For Synapse Config file, have a valid config file in:
+`~/.synapseConfig`
+Or, have the environment variable set:
+`SYNAPSE_CONFIG_FILE=`
+
+### Command Line Arguments
+
+```text
+options:
+  -u USERNAME, --username USERNAME
+                        Synapse username.
+  -p PASSWORD, --password PASSWORD
+                        Synapse password.
+  --auth-token AUTH_TOKEN
+                        Synapse auth token.
+  --synapse-config SYNAPSE_CONFIG
+                        Path to Synapse configuration file.
 ```
 
 ## Usage

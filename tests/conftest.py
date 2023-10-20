@@ -2,25 +2,30 @@ import pytest
 import os
 from synapse_test_helper import SynapseTestHelper
 from synapsis import Synapsis
-from syn_reports.cli import main as cli_main, __init__hooks__, __on_after_login__
+from syn_reports.cli import main as cli_main
+from syn_reports.core import Utils
+import synapseclient as syn
+from synapseclient.core.exceptions import SynapseHTTPError
 from dotenv import load_dotenv
 
 load_dotenv(override=True)
 
 
+@pytest.fixture(autouse=TabError)
+def before_each():
+    return Utils.WithCache.clear_cache()
+
+
+@pytest.fixture(scope='session')
+def test_synapse_auth_token():
+    return os.environ.get('SYNAPSE_AUTH_TOKEN')
+
+
 @pytest.fixture(scope='session', autouse=True)
-def syn_client():
-    auth_token = os.environ.get('SYNAPSE_AUTH_TOKEN', None)
-    assert auth_token
+def syn_client(test_synapse_auth_token):
+    Synapsis.configure(authToken=test_synapse_auth_token, synapse_args={'multi_threaded': False})
     SynapseTestHelper.configure(Synapsis.login().Synapse)
     return Synapsis.Synapse
-
-
-@pytest.fixture(autouse=True)
-def init_hooks():
-    __init__hooks__()
-    __on_after_login__(Synapsis.hooks.AFTER_LOGIN)
-    assert Synapsis.Synapse.multi_threaded is False
 
 
 @pytest.fixture(scope='session')
@@ -64,3 +69,38 @@ def expect_cli_exit_code():
         assert pytest_wrapped_e.value.code == expected_code
 
     yield _fn
+
+
+@pytest.fixture(scope='session')
+def has_permission_to(synapse_test_helper):
+    def _m(entity, principal, access_types=None):
+        principal_id = syn.core.utils.id_of(principal)
+        current_access_types = synapse_test_helper.client().getPermissions(entity, principalId=principal_id)
+        if access_types is None:
+            return len(current_access_types) > 0
+        else:
+            return set(current_access_types) == set(access_types)
+
+    yield _m
+
+
+@pytest.fixture(scope='session')
+def has_direct_permission_to(synapse_test_helper):
+    def _m(entity, principal, access_types=None):
+        entity_id = Synapsis.id_of(entity)
+        try:
+            entity_acl = synapse_test_helper.client().restGET('/entity/{0}/acl'.format(entity_id))
+        except SynapseHTTPError as ex:
+            if ex.response.status_code == 404:
+                # The requested ACL does not exist. This entity inherits its permissions from: /entity/syn0000000/acl
+                return False
+            else:
+                raise
+        resource_access = Synapsis.Utils.find_acl_resource_access(entity_acl, principal)
+        current_access_types = resource_access['accessType'] if resource_access else []
+        if access_types is None:
+            return len(current_access_types) > 0
+        else:
+            return set(current_access_types) == set(access_types)
+
+    yield _m
