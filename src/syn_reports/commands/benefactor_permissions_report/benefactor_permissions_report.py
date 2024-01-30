@@ -27,7 +27,6 @@ class BenefactorPermissionsReport:
         self._csv_file = None
         self._csv_writer = None
         self.csv_files_created = []
-        self._view = None
         self.errors = []
 
     CSV_HEADERS = ['entity_type',
@@ -52,8 +51,6 @@ class BenefactorPermissionsReport:
                 return self
 
         try:
-            self._view = BenefactorView()
-
             if not self._entity_ids_or_names:
                 user = Synapsis.getUserProfile()
                 print('Loading all Projects accessible to user: {0}'.format(user.userName))
@@ -63,29 +60,34 @@ class BenefactorPermissionsReport:
                     self._entity_ids_or_names.append(project_id)
                     print('  - Adding Project: {0} ({1})'.format(project_name, project_id))
 
-            for id_or_name in self._entity_ids_or_names:
-                try:
-                    print('=' * 80)
-                    print('Looking up entity: "{0}"...'.format(id_or_name))
-                    entity = Utils.get_entity(id_or_name, self._show_error)
-                    if entity:
-                        entity_type = Synapsis.ConcreteTypes.get(entity)
-                        entity_name = entity['name']
-                        if self._out_path and self._out_file_per_entity:
-                            if not self._start_csv(project_name=entity_name):
-                                return self
+            print('Creating Temporary Project and Views...')
+            with BenefactorView() as benefactor_view:
+                for id_or_name in self._entity_ids_or_names:
+                    try:
+                        print('=' * 80)
+                        entity = Utils.get_entity(id_or_name, self._show_error)
+                        if entity:
+                            entity_type = Synapsis.ConcreteTypes.get(entity)
+                            entity_name = entity['name']
+                            if self._out_path and self._out_file_per_entity:
+                                if not self._start_csv(project_name=entity_name):
+                                    return self
 
-                        print('{0}: {1} ({2}) found.'.format(entity_type.name, entity_name, entity['id']))
-                        print('Creating Temporary Project and Views...')
-                        self._view.set_scope(entity)
-                        self._report_on_view()
-                        if self._out_path and self._out_file_per_entity:
-                            self._end_csv()
-                    else:
-                        self._show_error(
-                            'Entity does not exist or you do not have access to the entity: {0}'.format(id_or_name))
-                except Exception as ex:
-                    self._show_error('ERROR: {0}'.format(ex))
+                            print('Reporting on {0}: {1} ({2}) [{3} of {4}]'.format(
+                                entity_type.name,
+                                entity_name, entity['id'],
+                                self._entity_ids_or_names.index(id_or_name) + 1,
+                                len(self._entity_ids_or_names)
+                            ))
+                            benefactor_view.set_scope(entity)
+                            self._report_on_view(benefactor_view)
+                            if self._out_path and self._out_file_per_entity:
+                                self._end_csv()
+                        else:
+                            self._show_error(
+                                'Entity does not exist or you do not have access to the entity: {0}'.format(id_or_name))
+                    except Exception as ex:
+                        self._show_error('ERROR: {0}'.format(ex))
         finally:
             self._end_csv()
             if len(self.csv_files_created) > 0:
@@ -93,8 +95,6 @@ class BenefactorPermissionsReport:
                 print('Report(s) saved to:')
                 for csv_file in self.csv_files_created:
                     print(csv_file)
-            if self._view:
-                self._view.delete()
         return self
 
     def _start_csv(self, project_name=None):
@@ -142,8 +142,8 @@ class BenefactorPermissionsReport:
         self.errors.append(msg)
         Utils.eprint(msg)
 
-    def _report_on_view(self):
-        for item in self._view:
+    def _report_on_view(self, benefactor_view):
+        for item in benefactor_view:
             try:
                 benefactor_id = item['benefactor_id']
                 entity_project_id = item['project_id']
@@ -248,12 +248,14 @@ class BenefactorPermissionsReport:
 
             user_data = ' - '.join(user_field_data)
 
-        if is_invite and user_id is None:
-            print('{0}Invited Email: {1}'.format(indent, username))
-        elif is_invite:
-            print('{0}Invited Username: {1} ({2})'.format(indent, username, user_id))
-        else:
+        if is_invite:
+            if user_id is None:
+                print('{0}Invited Email: {1}'.format(indent, username))
+            else:
+                print('{0}Invited Username: {1} ({2})'.format(indent, username, user_id))
+        elif username:
             print('{0}Username: {1} ({2})'.format(indent, username, user_id))
+
         if from_team_name:
             print('{0}From Team: {1} ({2})'.format(indent, from_team_name, from_team_id))
         if first_name:

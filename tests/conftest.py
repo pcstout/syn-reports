@@ -23,7 +23,7 @@ def test_synapse_auth_token():
 
 @pytest.fixture(scope='session', autouse=True)
 def syn_client(test_synapse_auth_token):
-    Synapsis.configure(authToken=test_synapse_auth_token, synapse_args={'multi_threaded': False})
+    Synapsis.configure(authToken=test_synapse_auth_token)
     SynapseTestHelper.configure(Synapsis.login().Synapse)
     return Synapsis.Synapse
 

@@ -9,9 +9,16 @@ class BenefactorView(list):
     COL_BENEFACTORID = 'benefactorId'
     COL_PROJECTID = 'projectId'
 
-    def __init__(self):
+    def __init__(self, without_view=False):
         self.scope = None
         self.view_project = None
+        self.without_view = without_view
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, type, value, traceback):
+        self.delete()
 
     def set_scope(self, scope, clear=True):
         """Load a new scope object and optionally clear the benefactor list data.
@@ -31,7 +38,7 @@ class BenefactorView(list):
                 self._add_single_scope_item(self.scope)
 
                 if type(self.scope) in [syn.Project, syn.Folder]:
-                    if self.view_project is None:
+                    if self.view_project is None and not self.without_view:
                         self._create_project()
 
                     # Create a view and load the uniq benefactors for each folder and file in the scoped container.
@@ -47,7 +54,10 @@ class BenefactorView(list):
         If a view cannot be created this method will fall back to adding each folder/file individually.
         """
         try:
-            self._query_view(self._create_view([syn.EntityViewType.FOLDER, syn.EntityViewType.FILE]))
+            if self.without_view:
+                self._fallback_add_folders_and_files()
+            else:
+                self._query_view(self._create_view([syn.EntityViewType.FOLDER, syn.EntityViewType.FILE]))
         except SynapseHTTPError as ex:
             if 'scope exceeds the maximum number' in str(ex):
                 print('Cannot create Folder/File view for: {0}. Falling back to individual loading and views.'.format(
@@ -73,27 +83,30 @@ class BenefactorView(list):
         for child_item in child_items:
             child_type = Synapsis.ConcreteTypes.get(child_item)
             child_item_id = child_item['id']
+            child_item_benefactor_id = child_item['benefactorId']
+            if not str(child_item_benefactor_id).startswith('syn'):
+                child_item_benefactor_id = 'syn{0}'.format(child_item_benefactor_id)
             child_added_count += 1
             print(' - Adding {0}: {1} [{2}/{3}]'.format(child_type.name,
                                                         child_item_id,
                                                         child_added_count,
                                                         len(child_items)))
-            self._add_single_scope_item(child_item_id, project_id=project_id)
+            self._add_single_scope_item(child_item_id, project_id=project_id, benefactor_id=child_item_benefactor_id)
             if child_type.is_folder:
                 folder_ids.append(child_item_id)
 
         # Try to load the folders with views.
         folder_added_count = 0
         for folder_id in folder_ids:
-            folder_added_count += 1
             syn_folder = Synapsis.get(folder_id)
+            folder_added_count += 1
             print(' - Creating View for Folder: {0} ({1}) [{2}/{3}]'.format(syn_folder.id,
                                                                             syn_folder.name,
                                                                             folder_added_count,
                                                                             len(folder_ids)))
             self.set_scope(syn_folder, clear=False)
 
-    def _add_single_scope_item(self, entity_or_id, project_id=None):
+    def _add_single_scope_item(self, entity_or_id, project_id=None, benefactor_id=None):
         """Gets the benefactor data for a single entity and adds it to self.
 
         Args:
@@ -102,8 +115,9 @@ class BenefactorView(list):
         Returns:
             None
         """
-        benefactor_header = Synapsis.restGET('/entity/{0}/benefactor'.format(Synapsis.id_of(entity_or_id)))
-        benefactor_id = benefactor_header.get('id')
+        if benefactor_id is None:
+            benefactor_header = Synapsis.restGET('/entity/{0}/benefactor'.format(Synapsis.id_of(entity_or_id)))
+            benefactor_id = benefactor_header.get('id')
         if project_id is None:
             project_id = Utils.WithCache.get_project_id(Synapsis.id_of(entity_or_id))
         self._add_item(benefactor_id, project_id)
