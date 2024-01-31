@@ -1,16 +1,15 @@
 import pytest
 from synapseclient.core.exceptions import SynapseHTTPError
 from syn_reports.commands.benefactor_permissions_report import BenefactorView
-import synapseclient as syn
 from synapsis import Synapsis
 
 
 @pytest.fixture()
 def benefactor_view(synapse_test_helper):
-    bv = BenefactorView()
-    yield bv
-    if bv.view_project:
-        synapse_test_helper.dispose(bv.view_project)
+    with BenefactorView() as bv:
+        yield bv
+        if bv.view_project:
+            synapse_test_helper.dispose(bv.view_project)
 
 
 @pytest.fixture(scope='session')

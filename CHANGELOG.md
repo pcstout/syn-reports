@@ -1,5 +1,11 @@
 # Change Log
 
+## Version 0.0.19 (2024-01-30)
+
+### Changes
+
+- Improved `benefactor-permissions` performance when falling back to loading individual folders and files.
+
 ## Version 0.0.18 (2023-10-19)
 
 ### Changes
